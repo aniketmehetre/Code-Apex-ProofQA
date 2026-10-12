@@ -1,0 +1,67 @@
+{
+  "description": "Exact signature lock preventing replay slippage to easier bugs.",
+  "properties": {
+    "kind": {
+      "title": "Kind",
+      "type": "string"
+    },
+    "first_party_endpoint": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "First Party Endpoint"
+    },
+    "status": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Status"
+    },
+    "error_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Type"
+    },
+    "message_norm": {
+      "title": "Message Norm",
+      "type": "string"
+    },
+    "top_frame": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Top Frame"
+    }
+  },
+  "required": [
+    "kind",
+    "message_norm"
+  ],
+  "title": "FailureSignature",
+  "type": "object"
+}

@@ -1,0 +1,39 @@
+{
+  "description": "Hermetic runtime environment descriptor.",
+  "properties": {
+    "app": {
+      "default": "shop_twin",
+      "title": "App",
+      "type": "string"
+    },
+    "seed_db": {
+      "default": "apps/shop_twin/backend/seed.db",
+      "title": "Seed Db",
+      "type": "string"
+    },
+    "bugs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Bugs",
+      "type": "array"
+    },
+    "seed": {
+      "default": 42,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "clock_iso": {
+      "default": "2026-10-24T09:00:00Z",
+      "title": "Clock Iso",
+      "type": "string"
+    },
+    "chaos": {
+      "additionalProperties": true,
+      "title": "Chaos",
+      "type": "object"
+    }
+  },
+  "title": "WorldSpec",
+  "type": "object"
+}

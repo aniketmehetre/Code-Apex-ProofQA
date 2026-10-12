@@ -1,0 +1,64 @@
+{
+  "description": "Recorded network request/response pair.",
+  "properties": {
+    "type": {
+      "const": "network",
+      "default": "network",
+      "title": "Type",
+      "type": "string"
+    },
+    "method": {
+      "title": "Method",
+      "type": "string"
+    },
+    "url": {
+      "title": "Url",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "integer"
+    },
+    "first_party": {
+      "title": "First Party",
+      "type": "boolean"
+    },
+    "request_body_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request Body Hash"
+    },
+    "response_blob_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Response Blob Ref"
+    },
+    "timestamp_ms": {
+      "default": 0.0,
+      "title": "Timestamp Ms",
+      "type": "number"
+    }
+  },
+  "required": [
+    "method",
+    "url",
+    "status",
+    "first_party"
+  ],
+  "title": "NetworkEvent",
+  "type": "object"
+}

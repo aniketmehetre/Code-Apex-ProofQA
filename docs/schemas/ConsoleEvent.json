@@ -1,0 +1,42 @@
+{
+  "description": "Captured browser console output.",
+  "properties": {
+    "type": {
+      "const": "console",
+      "default": "console",
+      "title": "Type",
+      "type": "string"
+    },
+    "level": {
+      "title": "Level",
+      "type": "string"
+    },
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Url"
+    },
+    "timestamp_ms": {
+      "default": 0.0,
+      "title": "Timestamp Ms",
+      "type": "number"
+    }
+  },
+  "required": [
+    "level",
+    "text"
+  ],
+  "title": "ConsoleEvent",
+  "type": "object"
+}

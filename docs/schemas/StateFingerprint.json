@@ -1,0 +1,29 @@
+{
+  "description": "Normalized page perception state signature.",
+  "properties": {
+    "url_path": {
+      "title": "Url Path",
+      "type": "string"
+    },
+    "aria_hash": {
+      "title": "Aria Hash",
+      "type": "string"
+    },
+    "simhash": {
+      "title": "Simhash",
+      "type": "string"
+    },
+    "control_count": {
+      "title": "Control Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "url_path",
+    "aria_hash",
+    "simhash",
+    "control_count"
+  ],
+  "title": "StateFingerprint",
+  "type": "object"
+}

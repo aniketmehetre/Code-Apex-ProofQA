@@ -1,0 +1,280 @@
+{
+  "$defs": {
+    "Action": {
+      "description": "Deterministic, replayable browser action.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ActionKind"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "ActionKind": {
+      "description": "Enumeration of allowed deterministic browser actions.",
+      "enum": [
+        "goto",
+        "click",
+        "fill",
+        "select",
+        "press",
+        "wait"
+      ],
+      "title": "ActionKind",
+      "type": "string"
+    },
+    "FailureSignature": {
+      "description": "Exact signature lock preventing replay slippage to easier bugs.",
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "first_party_endpoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Party Endpoint"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "error_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Type"
+        },
+        "message_norm": {
+          "title": "Message Norm",
+          "type": "string"
+        },
+        "top_frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Top Frame"
+        }
+      },
+      "required": [
+        "kind",
+        "message_norm"
+      ],
+      "title": "FailureSignature",
+      "type": "object"
+    },
+    "Locator": {
+      "description": "Multi-strategy element locator prioritized by semantic stability.",
+      "properties": {
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "testid": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Testid"
+        },
+        "css_fallback": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Css Fallback"
+        }
+      },
+      "title": "Locator",
+      "type": "object"
+    },
+    "OracleClass": {
+      "description": "Proof strength hierarchy of verification oracles.",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+      ],
+      "title": "OracleClass",
+      "type": "string"
+    },
+    "Tier": {
+      "description": "Grounded confidence tiers assigned to discovered findings.",
+      "enum": [
+        "VERIFIED",
+        "VERIFIED_VIOLATION",
+        "INTERMITTENT",
+        "SUSPECTED",
+        "INSUFFICIENT_EVIDENCE"
+      ],
+      "title": "Tier",
+      "type": "string"
+    }
+  },
+  "description": "A candidate or verified bug finding.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "oracle_class": {
+      "$ref": "#/$defs/OracleClass"
+    },
+    "tier": {
+      "$ref": "#/$defs/Tier"
+    },
+    "signature": {
+      "$ref": "#/$defs/FailureSignature"
+    },
+    "claim": {
+      "title": "Claim",
+      "type": "string"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Provenance"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Action"
+      },
+      "title": "Steps",
+      "type": "array"
+    },
+    "confidence": {
+      "default": 1.0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "intent_confirmation_needed": {
+      "default": false,
+      "title": "Intent Confirmation Needed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "oracle_class",
+    "tier",
+    "signature",
+    "claim"
+  ],
+  "title": "Finding",
+  "type": "object"
+}

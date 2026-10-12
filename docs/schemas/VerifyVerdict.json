@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "VerifyVerdictKind": {
+      "description": "Independent certificate verification verdict.",
+      "enum": [
+        "VALID",
+        "INVALID",
+        "TAMPERED",
+        "UNRESOLVED_ENV"
+      ],
+      "title": "VerifyVerdictKind",
+      "type": "string"
+    }
+  },
+  "description": "Output produced by proofqa verify.",
+  "properties": {
+    "verdict": {
+      "$ref": "#/$defs/VerifyVerdictKind"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    },
+    "checks": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "certificate_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Certificate Id"
+    }
+  },
+  "required": [
+    "verdict"
+  ],
+  "title": "VerifyVerdict",
+  "type": "object"
+}

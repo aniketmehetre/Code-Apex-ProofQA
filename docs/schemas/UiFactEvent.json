@@ -1,0 +1,45 @@
+{
+  "description": "Cross-layer extracted fact comparing UI representation against API truth.",
+  "properties": {
+    "type": {
+      "const": "ui_fact",
+      "default": "ui_fact",
+      "title": "Type",
+      "type": "string"
+    },
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "ui_value": {
+      "title": "Ui Value"
+    },
+    "api_value": {
+      "title": "Api Value"
+    },
+    "api_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Api Ref"
+    },
+    "timestamp_ms": {
+      "default": 0.0,
+      "title": "Timestamp Ms",
+      "type": "number"
+    }
+  },
+  "required": [
+    "label",
+    "ui_value",
+    "api_value"
+  ],
+  "title": "UiFactEvent",
+  "type": "object"
+}

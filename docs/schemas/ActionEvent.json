@@ -1,0 +1,164 @@
+{
+  "$defs": {
+    "Action": {
+      "description": "Deterministic, replayable browser action.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ActionKind"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "Action",
+      "type": "object"
+    },
+    "ActionKind": {
+      "description": "Enumeration of allowed deterministic browser actions.",
+      "enum": [
+        "goto",
+        "click",
+        "fill",
+        "select",
+        "press",
+        "wait"
+      ],
+      "title": "ActionKind",
+      "type": "string"
+    },
+    "Locator": {
+      "description": "Multi-strategy element locator prioritized by semantic stability.",
+      "properties": {
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "testid": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Testid"
+        },
+        "css_fallback": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Css Fallback"
+        }
+      },
+      "title": "Locator",
+      "type": "object"
+    }
+  },
+  "description": "Recorded action execution event.",
+  "properties": {
+    "type": {
+      "const": "action",
+      "default": "action",
+      "title": "Type",
+      "type": "string"
+    },
+    "action": {
+      "$ref": "#/$defs/Action"
+    },
+    "timestamp_ms": {
+      "default": 0.0,
+      "title": "Timestamp Ms",
+      "type": "number"
+    },
+    "duration_ms": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duration Ms"
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "title": "ActionEvent",
+  "type": "object"
+}

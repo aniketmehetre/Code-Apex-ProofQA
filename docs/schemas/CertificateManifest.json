@@ -1,0 +1,41 @@
+{
+  "description": "Cryptographically anchored manifest for an issued Bug Certificate.",
+  "properties": {
+    "certificate_id": {
+      "title": "Certificate Id",
+      "type": "string"
+    },
+    "finding_id": {
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "contracts_version": {
+      "default": "1",
+      "title": "Contracts Version",
+      "type": "string"
+    },
+    "files": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Files",
+      "type": "object"
+    },
+    "manifest_hash": {
+      "default": "",
+      "title": "Manifest Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "certificate_id",
+    "finding_id",
+    "created_at"
+  ],
+  "title": "CertificateManifest",
+  "type": "object"
+}

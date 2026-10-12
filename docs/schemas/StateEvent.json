@@ -1,0 +1,55 @@
+{
+  "$defs": {
+    "StateFingerprint": {
+      "description": "Normalized page perception state signature.",
+      "properties": {
+        "url_path": {
+          "title": "Url Path",
+          "type": "string"
+        },
+        "aria_hash": {
+          "title": "Aria Hash",
+          "type": "string"
+        },
+        "simhash": {
+          "title": "Simhash",
+          "type": "string"
+        },
+        "control_count": {
+          "title": "Control Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "url_path",
+        "aria_hash",
+        "simhash",
+        "control_count"
+      ],
+      "title": "StateFingerprint",
+      "type": "object"
+    }
+  },
+  "description": "Observed settled page state.",
+  "properties": {
+    "type": {
+      "const": "state",
+      "default": "state",
+      "title": "Type",
+      "type": "string"
+    },
+    "fingerprint": {
+      "$ref": "#/$defs/StateFingerprint"
+    },
+    "timestamp_ms": {
+      "default": 0.0,
+      "title": "Timestamp Ms",
+      "type": "number"
+    }
+  },
+  "required": [
+    "fingerprint"
+  ],
+  "title": "StateEvent",
+  "type": "object"
+}
