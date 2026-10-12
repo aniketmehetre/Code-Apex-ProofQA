@@ -78,5 +78,19 @@ def verify(
         raise typer.Exit(code=3)
 
 
+@app.command()
+def dashboard(
+    port: int = typer.Option(8000, "--port", help="Port to serve the control plane and dashboard"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Host interface"),
+) -> None:
+    """Launch the ProofQA Control Plane and Web Dashboard."""
+    import uvicorn
+
+    from proofqa.api.server import app as fastapi_app
+    typer.echo(f"[*] Starting ProofQA Dashboard at http://{host}:{port}")
+    uvicorn.run(fastapi_app, host=host, port=port)
+
+
 if __name__ == "__main__":
     app()
+

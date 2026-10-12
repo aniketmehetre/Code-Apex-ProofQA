@@ -243,5 +243,27 @@
   - Confirmed 0 of N hijacks on adversarial prompt injection page and deterministic chaos replay.
   - Integrated adversarial hijack metrics into `proofbench/metrics.py`, `results/summary.json`, and `docs/claims.md` (Claim C-06).
   - Wired `make bench` target in `Makefile` and `make.bat` to run `proofbench.runner`.
-- **Untested**: Phase 11 Control Plane & Dashboard.
+- **Untested**: Phase 12 CI delivery & Phase 13 Demo / Red team.
 - **Risks**: None.
+
+## Phase 11: Control Plane and Dashboard (Track C, Milestone M3)
+
+### Prompts 11.1, 11.2 & 11.3: Control Plane API and SSE Live Dashboard (2026-10-13) - MILESTONE M3 ACHIEVED
+- **Status**: Completed (Tagged `m3`)
+- **Changes**:
+  - Implemented `proofqa/api/server.py` using FastAPI with authoritative session management, streaming SSE events with history buffer for client reconnects, ZIP certificate downloads, concurrent head-to-head race coordinator (`/race`), live verification runner with 1-byte tamper demonstration (`/verify`), and human review / signature suppression queue (`/findings/{id}/review`).
+  - Built production dashboard in `dashboard/` with React, TypeScript, and Vite in dark graphite with green accents and strict state-colored indicators (green verified, red fails, grey unresolved).
+  - Built 7 core interactive views:
+    1. Race Lane: Concurrent ProofQA vs Naive Monkey Baseline.
+    2. Explorer: Live SVG state graph tracking transitions, frontiers, and bugs.
+    3. Finding & Evidence: Multi-channel synchronized timeline (actions, network, console, DOM, signatures).
+    4. Shrink: Interactive 12-block delta debugging matrix with real state colors.
+    5. Verify: Cryptographic manifest inspector and interactive 1-byte tamper attack demo.
+    6. Bench Scoreboard: Empirical metrics with 95% Wilson confidence intervals.
+    7. Review Queue: Human review workflow with regression suite additions and signature suppression rules.
+  - Mounted compiled dashboard directly at `/` and `/assets` in FastAPI server.
+  - Added CLI command `proofqa dashboard` to launch the control plane and web dashboard in a single command.
+  - Added comprehensive test suite in `tests/test_control_plane.py` verifying all endpoints, SSE reconnection streaming, review workflows, and tamper validation.
+- **Untested**: Phase 12 CI delivery & Phase 13 Demo / Red team.
+- **Risks**: None.
+
