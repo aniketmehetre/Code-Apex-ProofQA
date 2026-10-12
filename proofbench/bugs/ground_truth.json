@@ -1,0 +1,142 @@
+[
+  {
+    "id": "B01",
+    "class": "A",
+    "category": "crash",
+    "difficulty": 1,
+    "minimal_trigger_description": "POST /api/cart with quantity 0",
+    "expected_signature": {
+      "kind": "http_5xx",
+      "status": 500,
+      "error_type": "ZeroQuantityException",
+      "message_norm": "ZeroQuantityException: Cannot allocate cart buffer with zero item quantity",
+      "first_party_endpoint": "/api/cart"
+    }
+  },
+  {
+    "id": "B02",
+    "class": "A",
+    "category": "stateful_crash",
+    "difficulty": 4,
+    "minimal_trigger_description": "Add product 1, Add product 2, Apply coupon SAVE10, Delete item 1, Checkout",
+    "expected_signature": {
+      "kind": "http_5xx",
+      "status": 500,
+      "error_type": "NullReferenceException",
+      "message_norm": "NullReferenceException: Coupon item binding dereference failed after line item deletion",
+      "first_party_endpoint": "/api/checkout"
+    }
+  },
+  {
+    "id": "B03",
+    "class": "D",
+    "category": "cross_layer_inconsistency",
+    "difficulty": 2,
+    "minimal_trigger_description": "Add item to cart, Delete item from cart, inspect cart badge count vs items count",
+    "expected_signature": {
+      "kind": "ui_mismatch",
+      "status": null,
+      "error_type": "CrossLayerMismatch",
+      "message_norm": "Cart badge displays count + 1 after item removal",
+      "first_party_endpoint": "/api/cart"
+    }
+  },
+  {
+    "id": "B04",
+    "class": "D",
+    "category": "cross_layer_total",
+    "difficulty": 2,
+    "minimal_trigger_description": "Add item to cart, Apply coupon, compare displayed total with subtotal minus discount",
+    "expected_signature": {
+      "kind": "ui_mismatch",
+      "status": null,
+      "error_type": "CrossLayerMismatch",
+      "message_norm": "Displayed cart total ignores applied coupon discount",
+      "first_party_endpoint": "/api/cart"
+    }
+  },
+  {
+    "id": "B05",
+    "class": "B",
+    "category": "metamorphic_sort",
+    "difficulty": 3,
+    "minimal_trigger_description": "Fetch products with default sort, sort by price_asc, sort by default again",
+    "expected_signature": {
+      "kind": "relation_violation",
+      "status": null,
+      "error_type": "MetamorphicViolation",
+      "message_norm": "Returning to default sort order does not restore initial ID ordering",
+      "first_party_endpoint": "/api/products"
+    }
+  },
+  {
+    "id": "B06",
+    "class": "B",
+    "category": "metamorphic_filter",
+    "difficulty": 3,
+    "minimal_trigger_description": "Filter by category on page 2",
+    "expected_signature": {
+      "kind": "relation_violation",
+      "status": null,
+      "error_type": "MetamorphicViolation",
+      "message_norm": "Category filter on page 2 returns items from other categories",
+      "first_party_endpoint": "/api/products"
+    }
+  },
+  {
+    "id": "B07",
+    "class": "B",
+    "category": "persistence",
+    "difficulty": 2,
+    "minimal_trigger_description": "Save address with PUT /api/account/address, then fetch with GET /api/account/address",
+    "expected_signature": {
+      "kind": "relation_violation",
+      "status": null,
+      "error_type": "MetamorphicViolation",
+      "message_norm": "Saved user account address is lost upon subsequent retrieval",
+      "first_party_endpoint": "/api/account/address"
+    }
+  },
+  {
+    "id": "B08",
+    "class": "C",
+    "category": "spec_validation",
+    "difficulty": 2,
+    "minimal_trigger_description": "Register user with 4 character password when spec requires 8",
+    "expected_signature": {
+      "kind": "spec_claim_violation",
+      "status": 200,
+      "error_type": "SpecViolation",
+      "message_norm": "Registration accepted password of length 4 violating policy of 8 characters",
+      "first_party_endpoint": "/api/register"
+    }
+  },
+  {
+    "id": "B09",
+    "class": "A",
+    "category": "intermittent_crash",
+    "difficulty": 3,
+    "minimal_trigger_description": "POST /api/cart repeatedly, approximately 1 in 3 fail with 500",
+    "expected_signature": {
+      "kind": "http_5xx",
+      "status": 500,
+      "error_type": "LockTimeoutException",
+      "message_norm": "LockTimeoutException: Transient concurrency lock timeout during cart insertion",
+      "first_party_endpoint": "/api/cart"
+    }
+  },
+  {
+    "id": "B10",
+    "class": "A",
+    "category": "crash_injection",
+    "difficulty": 2,
+    "minimal_trigger_description": "GET /api/products with single quote in query param q",
+    "expected_signature": {
+      "kind": "http_5xx",
+      "status": 500,
+      "error_type": "DatabaseError",
+      "message_norm": "Database error: syntax error near ''' - unescaped query parameter",
+      "first_party_endpoint": "/api/products"
+    }
+  }
+]

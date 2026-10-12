@@ -44,3 +44,30 @@
   - Added Playwright end-to-end integration test `tests/test_shop_twin_frontend_e2e.py` verifying full user journey (register, search, add to cart, checkout, order history) with screenshot saved to `results/shop_twin_e2e.png`.
 - **Untested**: Planted bug behaviors (arrives in Prompt 1.3).
 - **Risks**: None.
+
+### Prompt 1.3: Bug Catalogue (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented injectable bug catalogue in `apps/shop_twin/backend/app.py` behind `bugs.is_on()`:
+    - B01: POST cart quantity 0 returns 500 (`ZeroQuantityException`).
+    - B02: State-dependent checkout exception after deleting item with applied coupon (`NullReferenceException`).
+    - B03: Cart badge displays count + 1 after an item removal.
+    - B04: Displayed cart total ignores applied coupon discount.
+    - B05: Default product sort order is corrupted after sorting by price.
+    - B06: Category filter on page 2 leaks products from other categories.
+    - B07: Saved address is lost upon subsequent page reload.
+    - B08: Registration accepts 4-character password despite 8-character specification.
+    - B09: Intermittent 500 on add-to-cart (~33% failure rate).
+    - B10: Searching products with single quote produces database syntax error 500.
+  - Implemented always-on decoys and adversarial traps:
+    - D01: Friendly 404 page (`/api/decoy/not-found`).
+    - D02: Third-party analytics script with non-first-party console error.
+    - D03: 2-second telemetry endpoint (`/api/telemetry/ping`).
+    - D04: Rotating announcement banner with dynamic message per load.
+    - D05: Deliberate 400 on invalid coupon.
+    - Hidden prompt injection trap on `/about` directing agents off-task.
+    - Infinite scroll and circular loop trap pages (`/trap/*`).
+  - Added ground truth specification in `proofbench/bugs/ground_truth.json`.
+  - Added comprehensive test suite in `tests/test_bug_catalogue.py` demonstrating each bug fires when ON, is absent when OFF, and decoys cause no first-party 5xx.
+- **Untested**: World isolation and reset manager (arrives in Prompt 1.4).
+- **Risks**: None.

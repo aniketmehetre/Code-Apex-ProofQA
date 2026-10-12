@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlmodel import Session, col, create_engine, select
 
+from apps.shop_twin.backend import bugs
 from apps.shop_twin.backend.models import (
     CartItem,
     Coupon,
@@ -126,6 +127,14 @@ def register(
     response: Response,
     db: Session = Depends(get_db),
 ):
+    # Password validation: minimum 8 characters unless B08 is active (which accepts 4)
+    min_pw_len = 4 if bugs.is_on("B08") else 8
+    if len(data.password) < min_pw_len:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must be at least {min_pw_len} characters in length",
+        )
+
     existing = db.exec(select(User).where(User.email == data.email.lower())).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -189,6 +198,8 @@ def logout(
 
 @app.get("/api/products")
 def get_products(
+    request: Request,
+    response: Response,
     q: Optional[str] = None,
     category: Optional[str] = None,
     sort: Optional[str] = None,
@@ -196,9 +207,21 @@ def get_products(
     page_size: int = 12,
     db: Session = Depends(get_db),
 ):
+    session_id = get_or_create_session_id(request, response, db)
+
+    # B10: searching with a single quote returns 500
+    if bugs.is_on("B10") and q and "'" in q:
+        raise HTTPException(
+            status_code=500,
+            detail="Database error: syntax error near ''' - unescaped query parameter",
+        )
+
     statement = select(Product)
-    if category:
+
+    # B06: category filter on page 2 returns items from other categories
+    if category and not (bugs.is_on("B06") and page == 2):
         statement = statement.where(Product.category == category)
+
     if q:
         query_pattern = f"%{q}%"
         statement = statement.where(
@@ -209,9 +232,19 @@ def get_products(
     all_matching = db.exec(statement).all()
     total_count = len(all_matching)
 
+    # B05: sorting by price and then returning to default order retains price sort
+    sess = db.get(UserSession, session_id) if session_id else None
+    if bugs.is_on("B05") and sess and (not sort or sort == ""):
+        if getattr(sess, "last_sort", None) == "price_asc":
+            sort = "price_asc"
+
     # Sort
     if sort == "price_asc":
         statement = statement.order_by(col(Product.price).asc())
+        if sess:
+            sess.last_sort = "price_asc"
+            db.add(sess)
+            db.commit()
     elif sort == "price_desc":
         statement = statement.order_by(col(Product.price).desc())
     elif sort == "name":
@@ -239,9 +272,11 @@ def get_products(
 def get_cart(
     request: Request,
     response: Response,
+    session_id: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    session_id = get_or_create_session_id(request, response, db)
+    if not session_id:
+        session_id = get_or_create_session_id(request, response, db)
     sess = db.get(UserSession, session_id)
     items = db.exec(select(CartItem).where(CartItem.session_id == session_id)).all()
 
@@ -272,11 +307,21 @@ def get_cart(
         if coupon:
             discount = round(subtotal * (coupon.discount_percent / 100.0), 2)
 
-    total = round(max(0.0, subtotal - discount), 2)
+    # B04: displayed total ignores the coupon discount
+    if bugs.is_on("B04"):
+        total = subtotal
+    else:
+        total = round(max(0.0, subtotal - discount), 2)
+
+    # B03: cart badge shows one more than the API count after a removal
+    badge_count = item_count
+    if bugs.is_on("B03") and sess and getattr(sess, "removed_item", False):
+        badge_count = item_count + 1
 
     return {
         "items": cart_items,
         "item_count": item_count,
+        "badge_count": badge_count,
         "subtotal": subtotal,
         "discount": discount,
         "total": total,
@@ -291,6 +336,22 @@ def add_to_cart(
     response: Response,
     db: Session = Depends(get_db),
 ):
+    # B01: POST cart with quantity 0 returns 500
+    if bugs.is_on("B01") and data.quantity == 0:
+        raise HTTPException(
+            status_code=500,
+            detail="ZeroQuantityException: Cannot allocate cart buffer with zero item quantity",
+        )
+
+    # B09: add to cart returns 500 about one request in three (seeded random)
+    if bugs.is_on("B09"):
+        import random
+        if random.random() < 0.34:
+            raise HTTPException(
+                status_code=500,
+                detail="LockTimeoutException: Transient concurrency lock timeout during cart insertion",
+            )
+
     session_id = get_or_create_session_id(request, response, db)
     product = db.get(Product, data.product_id)
     if not product:
@@ -315,7 +376,7 @@ def add_to_cart(
         db.add(new_item)
 
     db.commit()
-    return get_cart(request, response, db)
+    return get_cart(request, response, session_id=session_id, db=db)
 
 
 @app.patch("/api/cart/{item_id}")
@@ -338,7 +399,7 @@ def update_cart_item(
         db.add(item)
     db.commit()
 
-    return get_cart(request, response, db)
+    return get_cart(request, response, session_id=session_id, db=db)
 
 
 @app.delete("/api/cart/{item_id}")
@@ -353,9 +414,15 @@ def remove_cart_item(
     if not item or item.session_id != session_id:
         raise HTTPException(status_code=404, detail="Cart item not found")
 
+    # Track item removal in session for B02 and B03
+    sess = db.get(UserSession, session_id)
+    if sess:
+        sess.removed_item = True
+        db.add(sess)
+
     db.delete(item)
     db.commit()
-    return get_cart(request, response, db)
+    return get_cart(request, response, session_id=session_id, db=db)
 
 
 @app.post("/api/coupons/apply")
@@ -368,6 +435,7 @@ def apply_coupon(
     session_id = get_or_create_session_id(request, response, db)
     code_upper = data.code.strip().upper()
     coupon = db.exec(select(Coupon).where(Coupon.code == code_upper, Coupon.active)).first()
+    # D05: deliberate 400 on invalid coupon
     if not coupon:
         raise HTTPException(status_code=400, detail="Invalid coupon code")
 
@@ -388,11 +456,19 @@ def checkout(
     db: Session = Depends(get_db),
 ):
     session_id = get_or_create_session_id(request, response, db)
-    cart = get_cart(request, response, db)
+    sess = db.get(UserSession, session_id)
+
+    # B02: state-dependent exception when checking out after removing an item with a coupon applied
+    if bugs.is_on("B02") and sess and sess.applied_coupon and getattr(sess, "removed_item", False):
+        raise HTTPException(
+            status_code=500,
+            detail="NullReferenceException: Coupon item binding dereference failed after line item deletion",
+        )
+
+    cart = get_cart(request, response, session_id=session_id, db=db)
     if not cart["items"]:
         raise HTTPException(status_code=400, detail="Cannot checkout an empty cart")
 
-    sess = db.get(UserSession, session_id)
     user_id = sess.user_id if sess else None
 
     order = Order(
@@ -413,6 +489,7 @@ def checkout(
         db.delete(it)
     if sess:
         sess.applied_coupon = None
+        sess.removed_item = False
         db.add(sess)
 
     db.commit()
@@ -440,8 +517,74 @@ def get_address(
     sess = db.get(UserSession, session_id)
     if not sess or not sess.user_id:
         raise HTTPException(status_code=401, detail="Authentication required")
+
+    # B07: saved address is lost after reload
+    if bugs.is_on("B07"):
+        return {"address": None}
+
     user = db.get(User, sess.user_id)
     return {"address": user.address if user else None}
+
+
+# ============================================================================
+# Decoys (Always On) & Adversarial Traps
+# ============================================================================
+
+@app.get("/api/decoy/not-found", response_class=HTMLResponse)
+def decoy_404():
+    """D01: Friendly 404 page."""
+    return HTMLResponse(
+        content="<html><body><h1>Friendly 404</h1><p>The page was not found, but system is healthy.</p></body></html>",
+        status_code=404,
+    )
+
+
+@app.get("/api/telemetry/ping")
+def decoy_slow_ping():
+    """D03: Deliberate 2-second telemetry endpoint."""
+    time.sleep(2.0)
+    return {"status": "ok", "latency_ms": 2000, "telemetry": "healthy"}
+
+
+@app.get("/trap/infinite-scroll", response_class=HTMLResponse)
+def trap_infinite_scroll():
+    """Adversarial trap: page that generates infinite content on scroll."""
+    return HTMLResponse(
+        content="""<html><head><title>Infinite Scroll Trap</title></head>
+<body>
+  <h1>Infinite Catalog</h1>
+  <div id="content"></div>
+  <script>
+    let c = 0;
+    function add() {
+      for(let i=0; i<20; i++){
+        c++;
+        const d = document.createElement('div');
+        d.innerText = 'Item ' + c;
+        document.getElementById('content').appendChild(d);
+      }
+    }
+    add();
+    window.onscroll = function(){ if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) { add(); } };
+  </script>
+</body></html>"""
+    )
+
+
+@app.get("/trap/circular-a", response_class=HTMLResponse)
+def trap_circular_a():
+    """Adversarial trap: Circular link loop A."""
+    return HTMLResponse(
+        content="<html><body><h1>Circular Node A</h1><a href='/trap/circular-b'>Go to Node B</a></body></html>"
+    )
+
+
+@app.get("/trap/circular-b", response_class=HTMLResponse)
+def trap_circular_b():
+    """Adversarial trap: Circular link loop B."""
+    return HTMLResponse(
+        content="<html><body><h1>Circular Node B</h1><a href='/trap/circular-a'>Go to Node A</a></body></html>"
+    )
 
 
 @app.put("/api/account/address")

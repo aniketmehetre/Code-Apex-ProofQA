@@ -31,6 +31,8 @@ class UserSession(SQLModel, table=True):
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     applied_coupon: Optional[str] = None
     created_at: float = 0.0
+    last_sort: Optional[str] = None
+    removed_item: bool = False
 
 
 class CartItem(SQLModel, table=True):

@@ -30,6 +30,7 @@ export interface CartLineItem {
 export interface Cart {
   items: CartLineItem[];
   item_count: number;
+  badge_count?: number;
   subtotal: number;
   discount: number;
   total: number;
