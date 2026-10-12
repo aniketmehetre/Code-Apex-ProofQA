@@ -174,7 +174,13 @@
   - Implemented `DeliberatelyFalseRelation` in `proofqa/oracles/relations/false_relation.py` demonstrating validation gating.
   - Implemented `RelationRunner` in `proofqa/oracles/relations/runner.py` running relations with `validate()` clean-world gate before admitting findings.
   - Added acceptance tests in `tests/test_oracles_class_b.py`: confirmed detection of B05, B06, B07, confirmed rejection of false relations by validation, and confirmed zero findings on clean twins.
-- **Untested**: Classes C and E (Prompt 4.4) and three-valued shrinking (Phase 5).
+### Prompt 4.4: Classes C and E (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `SpecClaimsOracle` in `proofqa/oracles/spec_claims.py`: extracts verifiable claims with exact quote spans and checks policy deterministically (e.g. B08 password policy check).
+  - Implemented `TemporalDifferentialOracle` in `proofqa/oracles/temporal_diff.py`: replaying saved traces across two WorldSpecs to detect behavioral regressions/divergences.
+  - Added unit and acceptance tests in `tests/test_oracles_class_c_e.py`: verified B08 spec claim detection with exact quote span citation and confirmed differential detection on divergent builds.
+- **Untested**: Phase 5 three-valued shrinking.
 - **Risks**: None.
 
 
