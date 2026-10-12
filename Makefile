@@ -1,4 +1,4 @@
-.PHONY: setup lint test twin bench demo clean
+.PHONY: setup lint test twin bench demo validate-menu clean
 
 ifeq ($(OS),Windows_NT)
     VENV_DIR = .venv
@@ -26,7 +26,10 @@ bench:
 	$(PYTHON) -m proofbench.runner
 
 demo:
-	@echo "Demo target: (stub for Phase 13)"
+	$(PYTHON) demo/demo_runner.py
+
+validate-menu:
+	$(PYTHON) demo/validate_menu.py
 
 clean:
 	rm -rf .pytest_cache .ruff_cache build dist *.egg-info

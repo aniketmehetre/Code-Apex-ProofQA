@@ -1,0 +1,16 @@
+{
+  "certificate_id": "recorded_b01",
+  "finding_id": "recorded_b01",
+  "created_at": "2026-10-12T21:08:29.414432+00:00",
+  "contracts_version": "1",
+  "files": {
+    "claim.json": "535b844db5e7efe5c40b442350225261a3623d59cc4bc6293e82447ab8e6bc6e",
+    "evidence/console.log": "06ebda77ab22ad052fdc864e2e859e5ce0e43170c818ca8b43ae77638999f09c",
+    "limits.md": "418115f000177ef256fe5f8aecc53bc0c7b4c26abb1d17e91c425df091dbc734",
+    "replay.json": "49d2baf673891f75a56447fc21a31ae0a099d31e6fcacecc34c4d59d720b1f5c",
+    "repro.json": "939e201df1c863e28ec99dbcc948767413a2535e5507691f3436b67faa144c11",
+    "signature.json": "c06d14667a6cd1725590fa797df4ae9a7149bd0c31c1fcc509c29b32e214f61a",
+    "world.json": "7c3fe9c9aa65a9eac7849c6689a7e0c1c393f64b1179f7a93283619696d23555"
+  },
+  "manifest_hash": "76fc033ef651959fc7c0415c4436d5618e2fc3b1b35298103f46b1fe1eaec58e"
+}

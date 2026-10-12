@@ -1,0 +1,7 @@
+{
+  "claim": "[RECORDED] Zero quantity cart addition returns 500 ZeroQuantityException",
+  "oracle_class": "A",
+  "provenance": "recorded_b01",
+  "tier": "VERIFIED",
+  "confidence": 1.0
+}

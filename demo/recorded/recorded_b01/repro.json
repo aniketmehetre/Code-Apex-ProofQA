@@ -1,0 +1,48 @@
+[
+  {
+    "id": "s0_home",
+    "kind": "goto",
+    "locator": null,
+    "value": "/",
+    "params": {}
+  },
+  {
+    "id": "s1_open_modal",
+    "kind": "click",
+    "locator": {
+      "role": "heading",
+      "name": "Noise-Canceling Wireless Headphones",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "s2_set_zero_qty",
+    "kind": "fill",
+    "locator": {
+      "role": "spinbutton",
+      "name": "Quantity",
+      "label": "Quantity",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": "0",
+    "params": {}
+  },
+  {
+    "id": "s3_submit_cart",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Confirm Add to Cart",
+      "label": null,
+      "testid": "modal-add-to-cart",
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  }
+]

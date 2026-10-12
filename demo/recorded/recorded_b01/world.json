@@ -1,0 +1,10 @@
+{
+  "app": "shop_twin",
+  "seed_db": "apps/shop_twin/backend/seed.db",
+  "bugs": [
+    "B01"
+  ],
+  "seed": 42,
+  "clock_iso": "2026-10-24T09:00:00Z",
+  "chaos": {}
+}

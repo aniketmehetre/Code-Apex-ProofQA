@@ -9,6 +9,7 @@ if "%1"=="test" goto test
 if "%1"=="twin" goto twin
 if "%1"=="bench" goto bench
 if "%1"=="demo" goto demo
+if "%1"=="validate-menu" goto validate_menu
 if "%1"=="" goto test
 
 echo Unknown target: %1
@@ -37,5 +38,9 @@ exit /b %ERRORLEVEL%
 exit /b %ERRORLEVEL%
 
 :demo
-echo Demo target: (stub for Phase 13)
-exit /b 0
+%PYTHON% demo\demo_runner.py
+exit /b %ERRORLEVEL%
+
+:validate_menu
+%PYTHON% demo\validate_menu.py %2 %3
+exit /b %ERRORLEVEL%

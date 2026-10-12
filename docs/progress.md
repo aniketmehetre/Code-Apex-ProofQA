@@ -273,7 +273,18 @@
   - Implemented PR comment generator in `proofqa/ci/comment.py` rendering cryptographic certificate tables and reproduction instructions.
   - Implemented mutation score checker in `proofqa/ci/mutation.py` scoring finding suites against planted bug mutants.
   - Added unit test suite in `tests/test_ci.py` validating workflow YAML, PR markdown generation, and mutation score calculations.
-- **Untested**: Phase 13 Demo, documentation, and final red team.
-- **Risks**: None.
+## Phase 13: Demo, Docs, and Final Red Team (Milestone M4)
 
-
+### Prompts 13.1, 13.2 & 13.3: Clean-Clone Demo, Grounded Documentation, and Final Red Team (2026-10-13) - MILESTONE M4 ACHIEVED
+- **Status**: Completed (Tagged `m4`)
+- **Changes**:
+  - Implemented demo harness in `demo/demo_runner.py` executing the scripted flow from `docs/CONTEXT.md` with step-by-step progress output.
+  - Implemented judge's-choice menu validator in `demo/validate_menu.py` validating bug flags end-to-end (`make validate-menu`).
+  - Added pre-validated hermetic fallback run in `demo/recorded/` with explicit `RECORDED` label complying with Rule 60.
+  - Completed comprehensive `README.md` with full architecture Mermaid diagram, one-command quickstart, and ProofBench evaluation metrics.
+  - Created `docs/limits.md` defining strict scientific bounds for what ProofQA proves and does not prove.
+  - Verified 100% numerical consistency between `docs/claims.md` and `results/summary.json`.
+  - Added automated red team test suite in `tests/test_redteam.py`: verified 1-byte tamper rejection, `OFFLINE=1` operation, static import guard enforcement, zero clean-twin false positives, and claims grounding.
+  - All unit, integration, and red-team test suites passing (70+ tests), ruff clean, and repository tagged at `m4`.
+- **Untested**: None. Full project implementation complete.
+- **Risks**: None. All milestone gates achieved.
