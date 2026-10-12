@@ -32,3 +32,15 @@
   - Added integration test suite in `tests/test_shop_twin_backend.py` exercising every endpoint with HTTPX.
 - **Untested**: Frontend UI integration (arrives in Prompt 1.2).
 - **Risks**: None.
+
+### Prompt 1.2: Frontend (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Built `apps/shop_twin/frontend` using React, Vite, TypeScript, and accessible semantic components.
+  - Implemented header with `data-testid="cart-badge"`, catalog with `data-testid="product-count"`, search, category filters, sorting, pagination, and product detail modal.
+  - Implemented shopping cart with quantity controls, coupon box, `data-testid="cart-total"`, and checkout address form.
+  - Implemented orders view, authentication view, and `/about` page with security requirements.
+  - Configured Vite build to `apps/shop_twin/frontend/dist` served by FastAPI root `/`.
+  - Added Playwright end-to-end integration test `tests/test_shop_twin_frontend_e2e.py` verifying full user journey (register, search, add to cart, checkout, order history) with screenshot saved to `results/shop_twin_e2e.png`.
+- **Untested**: Planted bug behaviors (arrives in Prompt 1.3).
+- **Risks**: None.
