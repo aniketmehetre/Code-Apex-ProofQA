@@ -114,8 +114,16 @@ def signature_from_events(
         if isinstance(ev, ConsoleEvent) and ev.level in ("error", "assert"):
             if noise_profile and noise_profile.is_known_noise(ev.text):
                 continue
-            # If D02 text, ignore as third-party noise even if no noise profile provided
-            if "[ThirdPartyTelemetry]" in ev.text:
+            # If D02 or third-party net failure, ignore as non-first-party noise
+            if (
+                "[ThirdPartyTelemetry]" in ev.text
+                or "ERR_NAME_NOT_RESOLVED" in ev.text
+                or "ERR_CONNECTION_REFUSED" in ev.text
+                or "ERR_INTERNET_DISCONNECTED" in ev.text
+                or "external-telemetry" in ev.text
+            ):
+                continue
+            if ev.url and ("external-telemetry" in ev.url or ".invalid" in ev.url):
                 continue
             return FailureSignature(
                 kind="console_error",

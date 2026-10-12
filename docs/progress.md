@@ -109,4 +109,18 @@
 - **Untested**: Replay engine and three-valued outcome evaluation (arrives in Prompt 2.3).
 - **Risks**: None.
 
+### Prompt 2.3: Replay Engine (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `replay()` in `proofqa/proof/replay.py`: executes n deterministic replays across freshly instantiated isolated worlds and browser contexts, executing actions sequentially.
+  - Implemented three-valued outcome classification: `FAIL` (target failure signature reproduced), `PASS` (ran fully without failure), and `UNRESOLVED` (action not executable, precondition missing, or timeout).
+  - Implemented bounded parallel replay using `asyncio.Semaphore` and in-memory trace/world/signature SHA-256 memoisation (`_REPLAY_CACHE`).
+  - Implemented signature locking comparison `signatures_match()` ensuring strict fidelity against target failure signatures.
+  - Added `data-testid="modal-add-to-cart"` and `aria-label="Confirm Add to Cart"` in `apps/shop_twin/frontend/src/App.tsx` and updated frontend build.
+  - Filtered third-party browser network errors (e.g. `ERR_NAME_NOT_RESOLVED` from Decoy D02 telemetry tracker) in `signature_from_events()`.
+  - Added comprehensive tests in `tests/test_replay.py`: confirmed B01 scripted trace gives 2 of 2 `FAIL`, clean world gives 2 of 2 `PASS`, missing prerequisite step gives `UNRESOLVED` (never `PASS`), and B09 gives a mix of outcomes without `UNRESOLVED`. Verified import guards pass.
+- **Untested**: State graph exploration and rule-based frontier (arrives in Phase 3, Prompt 3.1).
+- **Risks**: None.
+
+
 

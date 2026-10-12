@@ -12,6 +12,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<string>("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [modalQty, setModalQty] = useState<number>(1);
 
   const [cart, setCart] = useState<Cart>({
     items: [],
@@ -451,13 +452,26 @@ export function App() {
                 <span className="product-price" style={{ fontSize: "1.5rem" }}>
                   ${selectedProduct.price.toFixed(2)}
                 </span>
-                <button
-                  className="btn-primary"
-                  onClick={() => handleAddToCart(selectedProduct, 1)}
-                  aria-label={`Add ${selectedProduct.name} to cart`}
-                >
-                  Add to Cart
-                </button>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <label htmlFor="modal-qty-input" style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Qty:</label>
+                  <input
+                    id="modal-qty-input"
+                    type="number"
+                    min="0"
+                    value={modalQty}
+                    onChange={(e) => setModalQty(parseInt(e.target.value, 10) || 0)}
+                    aria-label="Quantity"
+                    style={{ width: "60px", padding: "0.35rem 0.5rem", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <button
+                    className="btn-primary"
+                    data-testid="modal-add-to-cart"
+                    onClick={() => handleAddToCart(selectedProduct, modalQty)}
+                    aria-label="Confirm Add to Cart"
+                  >
+                    Add to Cart
+                  </button>
+                </div>
               </div>
             </div>
           </div>

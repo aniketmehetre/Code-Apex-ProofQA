@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Tuple
 
 from playwright.async_api import Locator as PwLocator
@@ -15,7 +16,7 @@ async def resolve_element(page: Page, loc: Locator | None, timeout_ms: int = 400
     if not loc:
         return None
 
-    # 1. Role + Name
+    # 1. Role + Name (exact first, then case-insensitive substring)
     if loc.role:
         try:
             cand = page.get_by_role(loc.role, name=loc.name)  # type: ignore[arg-type]
@@ -23,6 +24,13 @@ async def resolve_element(page: Page, loc: Locator | None, timeout_ms: int = 400
                 return cand.first
         except Exception:
             pass
+        if loc.name:
+            try:
+                cand = page.get_by_role(loc.role, name=re.compile(re.escape(loc.name), re.IGNORECASE))  # type: ignore[arg-type]
+                if await cand.count() > 0 and await cand.first.is_visible():
+                    return cand.first
+            except Exception:
+                pass
 
     # 2. Label
     if loc.label:
