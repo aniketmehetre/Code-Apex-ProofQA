@@ -196,7 +196,16 @@
   - Level 2: Three-valued `async_ddmin` over action sequences with locked `FailureSignature` preservation.
   - Level 3: Implemented value shrinking in `proofqa/proof/value_shrink.py` simplifying numbers toward boundary values (e.g. qty 0) and strings toward minimal triggering characters (e.g. single quote).
   - Added comprehensive test suite in `tests/test_shrink.py`: verified bloated trace reduction to essential triggers on B01 and verified numeric/string input value minimization.
-- **Untested**: Phase 6 certificate generator and independent verifier.
+## Phase 6: Certificate and verify (Track B)
+
+### Prompt 6.1, 6.2 & 6.3: Certificate Builder, Independent Verifier, and Test Export (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `build_certificate()` in `proofqa/cert/build.py` producing hermetic directories containing `claim.json`, `repro.json`, `signature.json`, `replay.json`, `world.json`, `evidence/`, `limits.md`, and cryptographic `manifest.json` with SHA-256 digests.
+  - Implemented `verify_certificate()` in `proofqa/cert/verify.py` obeying Rule 3 without importing explore, oracles, llm, or uncertainty. Performs manifest integrity checks, world reconstruction, and 3x Playwright replays to emit `VALID`, `INVALID`, `TAMPERED`, or `UNRESOLVED_ENV` verdicts.
+  - Implemented `generate_pytest_test()` and `validate_fix_flip()` in `proofqa/cert/export.py` for standalone pytest regression export.
+  - Added full test suite in `tests/test_cert_verify.py`: confirmed VALID verdict on fresh certificates, verified instant TAMPERED detection upon 1-byte alteration, confirmed INVALID verdict on fixed baselines, and verified exported pytest test generation.
+- **Untested**: Phase 7 vertical slice pipeline CLI (Milestone M1).
 - **Risks**: None.
 
 
