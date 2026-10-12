@@ -96,3 +96,17 @@
 - **Untested**: Tape recorder and noise floor profiling (arrives in Prompt 2.2).
 - **Risks**: None.
 
+### Prompt 2.2: Tape Recorder and Noise Floor (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `TapeRecorder` in `proofqa/tape/recorder.py`: append-only JSONL event writer (`tape.jsonl`), blob directory for HTTP JSON payloads <= 256KB (`blobs/`), Playwright tracing archive exporter (`traces/trace.zip`), and failure screenshot capture (`screenshots/`).
+  - Added Playwright page listener integration: records `ActionEvent`, `NetworkEvent` (with first-party calculation derived from target world host), `ConsoleEvent`, `PageErrorEvent`, `StateEvent`, and `UiFactEvent`.
+  - Implemented `Tape` container and parser in `proofqa/tape/tape.py`: loads and validates serialized JSONL event stream, preserves deterministic action order.
+  - Implemented `signature_from_events()` extracting grounded `FailureSignature` instances (page errors, first-party 5xx responses, first-party console errors) normalized via `normalize_message()`.
+  - Implemented `NoiseProfile` and `noise_floor()` in `proofqa/tape/noise.py`: runs dual-pass exploration on clean worlds to baseline pre-existing third-party console/network anomalies (such as Decoy D02 telemetry tracker failure).
+  - Configured SPA fallback in `apps/shop_twin/backend/app.py` to route direct client page hits directly to `index.html`.
+  - Added full test suite in `tests/test_tape.py`: tested 5-step journey recording & identical deserialization, failure signature derivation, blob sizing bounds, and confirmed clean twin noise profile isolates Decoy D02 while reporting 0 first-party errors.
+- **Untested**: Replay engine and three-valued outcome evaluation (arrives in Prompt 2.3).
+- **Risks**: None.
+
+
