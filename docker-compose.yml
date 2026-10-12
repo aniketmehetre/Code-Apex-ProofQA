@@ -1,0 +1,12 @@
+services:
+  shop-twin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - BUGS=${BUGS:-}
+      - SEED=${SEED:-42}
+      - CLOCK_ISO=${CLOCK_ISO:-2026-10-24T09:00:00Z}
+    restart: unless-stopped

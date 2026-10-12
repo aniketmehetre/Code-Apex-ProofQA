@@ -71,3 +71,15 @@
   - Added comprehensive test suite in `tests/test_bug_catalogue.py` demonstrating each bug fires when ON, is absent when OFF, and decoys cause no first-party 5xx.
 - **Untested**: World isolation and reset manager (arrives in Prompt 1.4).
 - **Risks**: None.
+
+### Prompt 1.4: World Manager (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `World` context manager in `proofqa/world/manager.py` parameterized by `WorldSpec`.
+  - Implemented `start()` with dynamic temp directories, free port allocation, environment injection (`BUGS`, `SEED`, `CLOCK_ISO`, `SHOP_DB_PATH`), health polling, and logged startup duration.
+  - Implemented atomic `reset()` restoring pristine seed database without restarting the target process.
+  - Implemented clean shutdown `stop()`.
+  - Created root `Dockerfile` and `docker-compose.yml` for hermetic container execution.
+  - Added tests in `tests/test_world.py`: verified isolation across 3 concurrent worlds with differing bug sets, verified state clearance on `reset()`, and verified startup timing.
+- **Untested**: Playwright browser harness and action perception (arrives in Prompt 2.1).
+- **Risks**: None.

@@ -29,11 +29,14 @@ def run_twin(port: int | None = None, host: str = "127.0.0.1") -> None:
         from apps.shop_twin.backend.seed import seed_database
         seed_database(SEED_DB_PATH)
 
-    # 2. Create fresh isolated runtime DB copy
-    runtime_dir = Path(tempfile.mkdtemp(prefix="shop_twin_"))
-    runtime_db = runtime_dir / "runtime.db"
-    shutil.copyfile(SEED_DB_PATH, runtime_db)
-    os.environ["SHOP_DB_PATH"] = str(runtime_db)
+    # 2. Use existing SHOP_DB_PATH if set, else create fresh isolated copy
+    if "SHOP_DB_PATH" not in os.environ or not os.environ["SHOP_DB_PATH"]:
+        runtime_dir = Path(tempfile.mkdtemp(prefix="shop_twin_"))
+        runtime_db = runtime_dir / "runtime.db"
+        shutil.copyfile(SEED_DB_PATH, runtime_db)
+        os.environ["SHOP_DB_PATH"] = str(runtime_db)
+    else:
+        runtime_db = Path(os.environ["SHOP_DB_PATH"])
 
     # 3. Determine port
     if port is None:

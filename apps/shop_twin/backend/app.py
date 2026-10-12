@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import time
 import uuid
 from datetime import datetime, timezone
@@ -118,6 +119,16 @@ def get_or_create_session_id(request: Request, response: Response, db: Session) 
 @app.get("/api/health")
 def health():
     return {"status": "ok", "app": "shop_twin", "version": "1.0.0"}
+
+
+@app.post("/api/reset")
+def reset_database():
+    """Reset database to pristine seed.db without process restart."""
+    engine.dispose()
+    runtime_path = Path(db_url.replace("sqlite:///", ""))
+    if DEFAULT_DB_PATH.exists() and runtime_path.exists():
+        shutil.copyfile(DEFAULT_DB_PATH, runtime_path)
+    return {"status": "reset", "db": str(runtime_path)}
 
 
 @app.post("/api/register")
