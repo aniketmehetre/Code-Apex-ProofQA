@@ -64,7 +64,7 @@ async def run_live_scripted_demo() -> None:
         kind="http_5xx",
         first_party_endpoint="/api/cart",
         status=500,
-        message_norm="ZeroQuantityException: Cannot allocate cart buffer with zero item quantity",
+        message_norm="HTTP <NUM> on /api/cart",
     )
     cand_b01 = Finding(
         id="demo_b01",
