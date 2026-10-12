@@ -144,6 +144,19 @@
 - **Untested**: Oracles: Class A hard signals (arrives in Phase 4, Prompt 4.1).
 - **Risks**: None.
 
+## Phase 4: Oracles (Track B)
+
+### Prompt 4.1: Class A Hard Signals (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `HardSignalsOracle` in `proofqa/oracles/hard_signals.py`: derives grounded `Finding` candidates from tape events by inspecting first-party HTTP 5xx responses, uncaught page errors, and first-party console errors.
+  - Neutralized baseline noise and decoys: ignores non-first-party origins, filters Decoy D02 telemetry anomalies and network resolution failures (`ERR_NAME_NOT_RESOLVED`), and incorporates `NoiseProfile` baselines.
+  - Implemented explorer hook integration registering directly onto `RuleBasedExplorer`.
+  - Added test suite in `tests/test_oracles_class_a.py`: verified unit detection for B01, B02, and B10, confirmed zero false positives across 3 random seeds on clean/decoy environments, verified candidate extraction during active exploration, and confirmed strict compliance with architectural import guards.
+- **Untested**: Class D cross-layer consistency oracle (arrives in Prompt 4.2).
+- **Risks**: None.
+
+
 
 
 
