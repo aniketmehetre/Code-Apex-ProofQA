@@ -164,8 +164,19 @@
   - Generates structured `UiFactEvent` records on tape and creates grounded `Finding` candidates with `OracleClass.D`.
   - Authored comprehensive documentation in `docs/oracles.md` detailing the heuristic models and known boundaries across classes A through E.
   - Added test suite in `tests/test_oracles_class_d.py`: demonstrated detection of B03 (cart badge count mismatch after line item deletion) and B04 (cart total ignoring coupon discount), and verified zero false positives on clean environments.
-- **Untested**: Class B metamorphic relations (arrives in Prompt 4.3).
+### Prompt 4.3: Class B Metamorphic Relations (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented plugin interface `Relation` with `WidgetClassifier` in `proofqa/oracles/relations/base.py`.
+  - Implemented `SortRestorationRelation` in `proofqa/oracles/relations/sort.py` detecting B05 (default sort corrupted after price sort).
+  - Implemented `CategoryFilterRelation` in `proofqa/oracles/relations/filter.py` detecting B06 (category filter leaking items on pagination).
+  - Implemented `AddressPersistenceRelation` in `proofqa/oracles/relations/persistence.py` detecting B07 (saved address lost upon reload).
+  - Implemented `DeliberatelyFalseRelation` in `proofqa/oracles/relations/false_relation.py` demonstrating validation gating.
+  - Implemented `RelationRunner` in `proofqa/oracles/relations/runner.py` running relations with `validate()` clean-world gate before admitting findings.
+  - Added acceptance tests in `tests/test_oracles_class_b.py`: confirmed detection of B05, B06, B07, confirmed rejection of false relations by validation, and confirmed zero findings on clean twins.
+- **Untested**: Classes C and E (Prompt 4.4) and three-valued shrinking (Phase 5).
 - **Risks**: None.
+
 
 
 
