@@ -20,7 +20,7 @@ test:
 	$(PYTHON) -m pytest -v
 
 twin:
-	@echo "Twin target: (stub for Phase 1)"
+	$(PYTHON) apps/shop_twin/backend/main.py
 
 bench:
 	@echo "Bench target: (stub for Phase 9)"

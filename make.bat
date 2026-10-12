@@ -29,8 +29,8 @@ exit /b %ERRORLEVEL%
 exit /b %ERRORLEVEL%
 
 :twin
-echo Twin target: (stub for Phase 1)
-exit /b 0
+%PYTHON% apps\shop_twin\backend\main.py
+exit /b %ERRORLEVEL%
 
 :bench
 echo Bench target: (stub for Phase 9)
