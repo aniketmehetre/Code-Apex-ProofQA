@@ -223,7 +223,17 @@
   - Implemented `deduplicate_findings()` collapsing duplicate signals by normalized failure fingerprint.
   - Integrated uncertainty scoring and deduplication directly into `Pipeline.run()`.
   - Added unit test suite in `tests/test_uncertainty.py`: verified Wilson score intervals, B09 intermittent rate classification, B05 violation with intent flag, decoy abstention with suggested experiment, and fingerprint deduplication.
-- **Untested**: Phase 9 ProofBench and benchmark baselines (Milestone M2).
+## Phase 9: ProofBench (Track C, Milestone M2)
+
+### Prompts 9.1, 9.2 & 9.3: Runner, Adjudicator, Baselines, and Metrics (2026-10-13) - MILESTONE M2 ACHIEVED
+- **Status**: Completed (Tagged `m2`)
+- **Changes**:
+  - Implemented `Adjudicator` in `proofbench/adjudicate.py`: evaluates findings against `ground_truth.json` for true bugs, duplicates, decoy hits, and false positives.
+  - Implemented `RandomMonkeyBaseline` in `proofbench/baselines.py` for competitive benchmark comparison under matching budgets.
+  - Implemented `compute_metrics()` and `write_summary_and_reports()` in `proofbench/metrics.py`: generates `results/summary.json`, `results/report.md`, and populates `docs/claims.md` with 95% Wilson intervals.
+  - Implemented `BenchmarkRunner` in `proofbench/runner.py` running benchmark suites across random seeds and exporting `results/runs.jsonl`.
+  - Added test suite in `tests/test_proofbench.py`: verified true bug/duplicate adjudication, decoy anomaly isolation, metrics compilation, and multi-seed runner execution.
+- **Untested**: Phase 10 Adversarial Lab & Phase 11 Control Plane Dashboard.
 - **Risks**: None.
 
 
