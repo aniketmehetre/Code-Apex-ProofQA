@@ -156,6 +156,18 @@
 - **Untested**: Class D cross-layer consistency oracle (arrives in Prompt 4.2).
 - **Risks**: None.
 
+### Prompt 4.2: Class D Cross-Layer Consistency (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `CrossLayerOracle` in `proofqa/oracles/cross_layer.py`: dynamically evaluates consistency between ground-truth network JSON responses (`/api/cart`, `/api/products`) and rendered UI DOM/ARIA facts (cart badge count, rendered catalog count, formatted cart total).
+  - Implemented multi-stage verification: checks integer counts with exact tolerance and floating currency with cent-level tolerance ($\epsilon = 0.01$), incorporating an asynchronous settle delay (0.5s re-check) to prevent transient animation false positives.
+  - Generates structured `UiFactEvent` records on tape and creates grounded `Finding` candidates with `OracleClass.D`.
+  - Authored comprehensive documentation in `docs/oracles.md` detailing the heuristic models and known boundaries across classes A through E.
+  - Added test suite in `tests/test_oracles_class_d.py`: demonstrated detection of B03 (cart badge count mismatch after line item deletion) and B04 (cart total ignoring coupon discount), and verified zero false positives on clean environments.
+- **Untested**: Class B metamorphic relations (arrives in Prompt 4.3).
+- **Risks**: None.
+
+
 
 
 
