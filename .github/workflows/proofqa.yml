@@ -1,0 +1,58 @@
+name: ProofQA Continuous Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *' # Nightly drift detection
+
+jobs:
+  verify:
+    name: Autonomous QA & Cryptographic Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install System Dependencies & Playwright
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          python -m playwright install --with-deps chromium
+
+      - name: Run Import Guard Security Check (Rules 2 & 3)
+        run: |
+          pytest tests/test_import_guards.py -v
+
+      - name: Run ProofQA Autonomous Exploration & Certification
+        run: |
+          proofqa run --world shop_twin --bugs B01,B03 --budget 15 --out results/certificates
+
+      - name: Verify All Issued Certificates Independently
+        run: |
+          for cert in results/certificates/*; do
+            if [ -d "$cert" ]; then
+              echo "Verifying certificate: $cert"
+              proofqa verify "$cert"
+            fi
+          done
+
+      - name: Run Nightly State Drift Detection
+        if: github.event_name == 'schedule'
+        run: |
+          python -m proofbench.runner
+
+      - name: Post PR Verification Certificate Summary
+        if: github.event_name == 'pull_request'
+        run: |
+          python -c "from proofqa.ci.comment import generate_pr_comment; print(generate_pr_comment('results/certificates'))" > pr_comment.md
+          cat pr_comment.md

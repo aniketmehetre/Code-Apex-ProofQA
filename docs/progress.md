@@ -264,6 +264,16 @@
   - Mounted compiled dashboard directly at `/` and `/assets` in FastAPI server.
   - Added CLI command `proofqa dashboard` to launch the control plane and web dashboard in a single command.
   - Added comprehensive test suite in `tests/test_control_plane.py` verifying all endpoints, SSE reconnection streaming, review workflows, and tamper validation.
-- **Untested**: Phase 12 CI delivery & Phase 13 Demo / Red team.
+## Phase 12: CI Delivery (Track C)
+
+### Prompt 12.1: Action, Suite, and Drift (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented GitHub Actions continuous verification workflow in `.github/workflows/proofqa.yml` with automated Playwright browser tests, import guard enforcement, autonomous pipeline execution, and independent certificate verification.
+  - Implemented PR comment generator in `proofqa/ci/comment.py` rendering cryptographic certificate tables and reproduction instructions.
+  - Implemented mutation score checker in `proofqa/ci/mutation.py` scoring finding suites against planted bug mutants.
+  - Added unit test suite in `tests/test_ci.py` validating workflow YAML, PR markdown generation, and mutation score calculations.
+- **Untested**: Phase 13 Demo, documentation, and final red team.
 - **Risks**: None.
+
 
