@@ -205,7 +205,15 @@
   - Implemented `verify_certificate()` in `proofqa/cert/verify.py` obeying Rule 3 without importing explore, oracles, llm, or uncertainty. Performs manifest integrity checks, world reconstruction, and 3x Playwright replays to emit `VALID`, `INVALID`, `TAMPERED`, or `UNRESOLVED_ENV` verdicts.
   - Implemented `generate_pytest_test()` and `validate_fix_flip()` in `proofqa/cert/export.py` for standalone pytest regression export.
   - Added full test suite in `tests/test_cert_verify.py`: confirmed VALID verdict on fresh certificates, verified instant TAMPERED detection upon 1-byte alteration, confirmed INVALID verdict on fixed baselines, and verified exported pytest test generation.
-- **Untested**: Phase 7 vertical slice pipeline CLI (Milestone M1).
+## Phase 7: The vertical slice (Milestone M1)
+
+### Prompt 7.1: Pipeline and CLI (2026-10-13) - MILESTONE M1 ACHIEVED
+- **Status**: Completed (Tagged `m1`)
+- **Changes**:
+  - Implemented `Pipeline` and `PipelineEventBus` in `proofqa/pipeline.py`: integrates autonomous exploration, oracle candidate detection, k-of-k confirmation replays, three-valued signature-locked shrinking, and certificate issuance with SQLite session persistence.
+  - Implemented Typer CLI in `proofqa/cli.py` with `proofqa run` and `proofqa verify` commands.
+  - Added acceptance tests in `tests/test_pipeline_m1.py`: verified end-to-end execution on buggy twin yielding VALID certificate verified by independent verifier, and verified clean twin yields 0 false positive certificates.
+- **Untested**: Phase 8 uncertainty scoring and ProofBench (Milestone M2).
 - **Risks**: None.
 
 
