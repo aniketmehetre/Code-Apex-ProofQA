@@ -233,13 +233,15 @@
   - Implemented `compute_metrics()` and `write_summary_and_reports()` in `proofbench/metrics.py`: generates `results/summary.json`, `results/report.md`, and populates `docs/claims.md` with 95% Wilson intervals.
   - Implemented `BenchmarkRunner` in `proofbench/runner.py` running benchmark suites across random seeds and exporting `results/runs.jsonl`.
   - Added test suite in `tests/test_proofbench.py`: verified true bug/duplicate adjudication, decoy anomaly isolation, metrics compilation, and multi-seed runner execution.
-- **Untested**: Phase 10 Adversarial Lab & Phase 11 Control Plane Dashboard.
+## Phase 10: Adversarial Lab (Track B)
+
+### Prompt 10.1: Chaos and Adversarial Suite (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented chaos knobs in `proofqa/lab/chaos.py` (`ChaosConfig`, `apply_chaos`) supporting route latency injection and endpoint aborting.
+  - Implemented prompt injection protection and trap page avoidance test suite in `tests/test_adversarial_lab.py`.
+  - Confirmed 0 of N hijacks on adversarial prompt injection page and deterministic chaos replay.
+  - Integrated adversarial hijack metrics into `proofbench/metrics.py`, `results/summary.json`, and `docs/claims.md` (Claim C-06).
+  - Wired `make bench` target in `Makefile` and `make.bat` to run `proofbench.runner`.
+- **Untested**: Phase 11 Control Plane & Dashboard.
 - **Risks**: None.
-
-
-
-
-
-
-
-

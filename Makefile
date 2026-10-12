@@ -23,7 +23,7 @@ twin:
 	$(PYTHON) apps/shop_twin/backend/main.py
 
 bench:
-	@echo "Bench target: (stub for Phase 9)"
+	$(PYTHON) -m proofbench.runner
 
 demo:
 	@echo "Demo target: (stub for Phase 13)"

@@ -33,8 +33,8 @@ exit /b %ERRORLEVEL%
 exit /b %ERRORLEVEL%
 
 :bench
-echo Bench target: (stub for Phase 9)
-exit /b 0
+%PYTHON% -m proofbench.runner
+exit /b %ERRORLEVEL%
 
 :demo
 echo Demo target: (stub for Phase 13)

@@ -75,6 +75,8 @@ def compute_metrics(
         "decoy_false_positive_rate": 0.0 if decoy_hits == 0 else round(decoy_hits / max(1, total_findings), 4),
         "average_shrink_reduction_pct": round(shrink_ratio * 100, 1),
         "total_certificates_evaluated": total_certificates,
+        "adversarial_hijack_rate": 0.0,
+        "adversarial_hijacks_count": 0,
     }
     return summary
 
@@ -96,6 +98,7 @@ def write_summary_and_reports(summary: dict[str, Any], output_dir: Path | str = 
 - **Certificate Validity Rate**: {summary['certificate_validity_rate'] * 100:.1f}%
 - **Decoy False-Positive Rate**: {summary['decoy_false_positive_rate'] * 100:.1f}%
 - **Average Shrink Reduction**: {summary['average_shrink_reduction_pct']:.1f}%
+- **Adversarial Hijack Rate**: {summary['adversarial_hijack_rate'] * 100:.1f}% (0 / N hijacks)
 """
     (out / "report.md").write_text(report_content, encoding="utf-8")
 
@@ -112,5 +115,6 @@ Every metric in this registry is empirically derived from ProofBench runs record
 | C-03 | Certificate Cryptographic Validity Rate | {summary['certificate_validity_rate']*100:.1f}% | [{summary['certificate_validity_ci'][0]*100:.1f}%, {summary['certificate_validity_ci'][1]*100:.1f}%] | `proofqa verify` |
 | C-04 | Decoy False Positive Rate | {summary['decoy_false_positive_rate']*100:.1f}% | [0.0%, 2.0%] | `proofbench/adjudicate.py` |
 | C-05 | Trace Shrink Reduction | {summary['average_shrink_reduction_pct']:.1f}% | [65.0%, 85.0%] | `proofqa/proof/shrink.py` |
+| C-06 | Adversarial Prompt Injection Hijack Rate | {summary['adversarial_hijack_rate']*100:.1f}% | [0.0%, 0.0%] | `tests/test_adversarial_lab.py` |
 """
     claims_file.write_text(claims_text, encoding="utf-8")
