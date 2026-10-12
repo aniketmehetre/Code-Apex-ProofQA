@@ -180,7 +180,23 @@
   - Implemented `SpecClaimsOracle` in `proofqa/oracles/spec_claims.py`: extracts verifiable claims with exact quote spans and checks policy deterministically (e.g. B08 password policy check).
   - Implemented `TemporalDifferentialOracle` in `proofqa/oracles/temporal_diff.py`: replaying saved traces across two WorldSpecs to detect behavioral regressions/divergences.
   - Added unit and acceptance tests in `tests/test_oracles_class_c_e.py`: verified B08 spec claim detection with exact quote span citation and confirmed differential detection on divergent builds.
-- **Untested**: Phase 5 three-valued shrinking.
+## Phase 5: Shrinking (Track B)
+
+### Prompt 5.1: Generic Three-Valued ddmin (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `ddmin()` and `async_ddmin()` in `proofqa/proof/ddmin.py`: pure Zeller delta debugging algorithm supporting three-valued outcomes (FAIL, PASS, UNRESOLVED). UNRESOLVED is strictly never accepted as a reduction. Includes memoisation, call budgets, deterministic partitioning, and structured attempt logs.
+  - Added Hypothesis property-based tests in `tests/test_ddmin.py` testing monotone failures, pair dependencies, missing prerequisite handling, non-monotone predicates, and 1-minimality.
+
+### Prompt 5.2 & 5.3: Browser Trace Shrinker and Value Shrinking (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented multi-level browser test trace shrinker in `proofqa/proof/shrink.py` returning `ShrinkResult`.
+  - Level 1: State-drop and no-op removal.
+  - Level 2: Three-valued `async_ddmin` over action sequences with locked `FailureSignature` preservation.
+  - Level 3: Implemented value shrinking in `proofqa/proof/value_shrink.py` simplifying numbers toward boundary values (e.g. qty 0) and strings toward minimal triggering characters (e.g. single quote).
+  - Added comprehensive test suite in `tests/test_shrink.py`: verified bloated trace reduction to essential triggers on B01 and verified numeric/string input value minimization.
+- **Untested**: Phase 6 certificate generator and independent verifier.
 - **Risks**: None.
 
 
