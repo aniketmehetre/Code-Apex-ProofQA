@@ -213,7 +213,17 @@
   - Implemented `Pipeline` and `PipelineEventBus` in `proofqa/pipeline.py`: integrates autonomous exploration, oracle candidate detection, k-of-k confirmation replays, three-valued signature-locked shrinking, and certificate issuance with SQLite session persistence.
   - Implemented Typer CLI in `proofqa/cli.py` with `proofqa run` and `proofqa verify` commands.
   - Added acceptance tests in `tests/test_pipeline_m1.py`: verified end-to-end execution on buggy twin yielding VALID certificate verified by independent verifier, and verified clean twin yields 0 false positive certificates.
-- **Untested**: Phase 8 uncertainty scoring and ProofBench (Milestone M2).
+## Phase 8: Uncertainty (Track B)
+
+### Prompt 8.1: Confidence, Tiers, Dedup, and Abstention (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `compute_confidence()` and `assign_tier()` in `proofqa/uncertainty/scoring.py`: composes grounded confidence from binomial Wilson intervals, oracle hierarchy weights, noise profile distance, and signature stability.
+  - Implemented tier assignment rules: `VERIFIED`, `VERIFIED_VIOLATION` (with `intent_confirmation_needed=True` for classes B-E), `INTERMITTENT` (with observed reproduction rate), `SUSPECTED`, and `INSUFFICIENT_EVIDENCE` (with concrete experiment suggestions).
+  - Implemented `deduplicate_findings()` collapsing duplicate signals by normalized failure fingerprint.
+  - Integrated uncertainty scoring and deduplication directly into `Pipeline.run()`.
+  - Added unit test suite in `tests/test_uncertainty.py`: verified Wilson score intervals, B09 intermittent rate classification, B05 violation with intent flag, decoy abstention with suggested experiment, and fingerprint deduplication.
+- **Untested**: Phase 9 ProofBench and benchmark baselines (Milestone M2).
 - **Risks**: None.
 
 

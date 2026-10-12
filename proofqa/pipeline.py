@@ -18,7 +18,6 @@ from typing import Any
 from proofqa.cert.build import build_certificate
 from proofqa.contracts import (
     Finding,
-    OracleClass,
     Tier,
     WorldSpec,
 )
@@ -26,6 +25,7 @@ from proofqa.explore.explorer import RuleBasedExplorer
 from proofqa.oracles.hard_signals import HardSignalsOracle
 from proofqa.proof.replay import replay
 from proofqa.proof.shrink import shrink
+from proofqa.uncertainty import assign_tier, compute_confidence, deduplicate_findings
 from proofqa.world.manager import World
 
 
@@ -116,6 +116,9 @@ class Pipeline:
                     {"candidates_found": len(candidates), "steps": explore_result.steps_executed},
                 )
 
+        # Deduplicate candidate findings before replay
+        candidates = deduplicate_findings(candidates)
+
         # 2. For each discovered candidate: Replay, Shrink, and Certify
         for cand in candidates:
             await self.event_bus.emit("candidate_evaluation_started", {"finding_id": cand.id})
@@ -129,17 +132,36 @@ class Pipeline:
                 concurrency=1,
             )
 
-            if rep_report.fail_count < k_replays:
+            # Compute uncertainty breakdown and tier
+            breakdown = compute_confidence(
+                finding=cand,
+                successes=rep_report.fail_count,
+                total_replays=k_replays,
+            )
+            assigned_tier, intent_needed, next_exp = assign_tier(
+                finding=cand,
+                successes=rep_report.fail_count,
+                total_replays=k_replays,
+                breakdown=breakdown,
+            )
+
+            if assigned_tier == Tier.INSUFFICIENT_EVIDENCE:
                 await self.event_bus.emit(
                     "candidate_rejected",
-                    {"finding_id": cand.id, "reason": f"Only reproduced {rep_report.fail_count}/{k_replays}"},
+                    {
+                        "finding_id": cand.id,
+                        "reason": f"Insufficient evidence (reproduced {rep_report.fail_count}/{k_replays})",
+                        "suggested_experiment": next_exp,
+                    },
                 )
                 continue
 
-            # Candidate confirmed! Assign tier
+            # Candidate confirmed! Assign tier and confidence
             verified_cand = cand.model_copy(
                 update={
-                    "tier": Tier.VERIFIED if cand.oracle_class in (OracleClass.A, OracleClass.D) else Tier.VERIFIED_VIOLATION
+                    "tier": assigned_tier,
+                    "confidence": breakdown.composite_score,
+                    "intent_confirmation_needed": intent_needed,
                 }
             )
 
