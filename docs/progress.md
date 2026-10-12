@@ -83,3 +83,16 @@
   - Added tests in `tests/test_world.py`: verified isolation across 3 concurrent worlds with differing bug sets, verified state clearance on `reset()`, and verified startup timing.
 - **Untested**: Playwright browser harness and action perception (arrives in Prompt 2.1).
 - **Risks**: None.
+
+## Phase 2: Harness, tape, replay (Track B)
+
+### Prompt 2.1: Harness and Perception (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `BrowserHarness` in `proofqa/browser/harness.py`: async Playwright harness configuring fixed viewport (1280x720), frozen system Date via page init script, and Mulberry32 seeded PRNG replacing `Math.random()`.
+  - Implemented perception layer in `proofqa/browser/perception.py`: ARIA tree extraction, simhashing (64-bit FNV-1a based), stable action IDs hashing role, accessible name and ancestry, volatile region detection & masking for dynamic banners (e.g. Decoy D04), and same-origin safety filtering with destructive action deny-lists.
+  - Implemented prioritized action executor in `proofqa/browser/executor.py` evaluating locators in order: `role` + `name`, `label`, `testid`, with CSS fallback, returning structured outcome (`ok` or `not_executable` with informative reason).
+  - Added unit and integration tests in `tests/test_browser_perception.py` verifying fingerprint stability despite D04 rotating banner, click action execution, and clean `not_executable` reporting on missing elements.
+- **Untested**: Tape recorder and noise floor profiling (arrives in Prompt 2.2).
+- **Risks**: None.
+
