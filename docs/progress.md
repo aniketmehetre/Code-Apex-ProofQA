@@ -122,5 +122,18 @@
 - **Untested**: State graph exploration and rule-based frontier (arrives in Phase 3, Prompt 3.1).
 - **Risks**: None.
 
+## Phase 3: Explorer (Track B)
+
+### Prompt 3.1: State Graph and Rule-Based Explorer (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `StateGraph` in `proofqa/explore/state_graph.py`: directed state graph powered by NetworkX and backed by SQLite persistence (`states` and `transitions` tables). Provides frontier management, nearest-untried state querying (`nx.shortest_path`), path reconstruction from root, and coverage metrics.
+  - Implemented deterministic input library in `proofqa/explore/inputs.py`: handles valid strings, empty strings, very long buffers (1000 chars), unicode and emoji, single and double quote characters, zero, negative numbers, and huge boundary numbers, plus automatic test account generation.
+  - Implemented `RuleBasedExplorer` in `proofqa/explore/explorer.py`: navigates the application frontier autonomously without LLM reliance, recording a unified session `Tape`, detecting adversarial loops (trap pages like `/trap/circular-*` and `/trap/infinite-scroll`), backtracking via clean-world resets (`world.reset()`), and exposing an extensible oracle hook interface.
+  - Added tests in `tests/test_explorer.py`: verified multi-page state coverage reporting, SQLite graph persistence, deterministic action choice across identical seeds, and trap avoidance without infinite loops.
+- **Untested**: LLM gateway and proposer integration (arrives in Prompt 3.2).
+- **Risks**: None.
+
+
 
 
