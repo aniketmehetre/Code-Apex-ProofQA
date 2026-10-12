@@ -134,6 +134,17 @@
 - **Untested**: LLM gateway and proposer integration (arrives in Prompt 3.2).
 - **Risks**: None.
 
+### Prompt 3.2: LLM Gateway and Proposer (2026-10-13)
+- **Status**: Completed
+- **Changes**:
+  - Implemented `LLMGateway` in `proofqa/llm/gateway.py`: thin abstraction over LiteLLM featuring Pydantic-validated structured outputs, SHA-256 disk caching, JSONL request logging (`results/llm_calls.jsonl`), and hermetic offline detection (`OFFLINE=1` or absence of provider API keys returning `None`).
+  - Implemented `Proposer` in `proofqa/llm/proposer.py`: accepts numbered candidate actions and quotes raw page text in an untrusted data block (`<<<UNTRUSTED_PAGE_DATA>>>`), strictly validating model output indices against the candidate list. Ungrounded suggestions and adversarial injection attempts are dropped, defaulting to rule-based explorer choices.
+  - Connected `Proposer` directly into `RuleBasedExplorer`, supporting ranking when online and transparent rule-based fallback when offline.
+  - Added test suite in `tests/test_llm_proposer.py`: verified proposer choices are respected with a mocked model, verified offline mode (`OFFLINE=1`) runs the explorer without errors, verified prompt injections on `/about` are neutralized, and verified import guards remain clean.
+- **Untested**: Oracles: Class A hard signals (arrives in Phase 4, Prompt 4.1).
+- **Risks**: None.
+
+
 
 
 

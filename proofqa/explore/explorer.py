@@ -151,9 +151,23 @@ class RuleBasedExplorer:
                         break
 
                 # Choose next action from untried
-                # Sort deterministically using seeded RNG
                 untried_actions.sort(key=lambda a: (a.kind.value, a.id))
-                selected_action = rng.choice(untried_actions)
+                selected_action = None
+                if self.proposer:
+                    try:
+                        raw_text = await page.inner_text("body")
+                    except Exception:
+                        raw_text = ""
+                    suggested = self.proposer.propose(
+                        candidates=untried_actions,
+                        page_text=raw_text,
+                        state_summary=f"Path: {fp.url_path}, controls: {fp.control_count}",
+                    )
+                    if suggested:
+                        selected_action = suggested[0]
+
+                if selected_action is None:
+                    selected_action = rng.choice(untried_actions)
 
                 # Form filling value assignment
                 if selected_action.kind == ActionKind.FILL:
