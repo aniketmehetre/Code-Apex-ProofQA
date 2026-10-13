@@ -103,7 +103,7 @@ class Pipeline:
                 explorer = RuleBasedExplorer(
                     world=world,
                     budget_steps=step_budget,
-                    output_dir=self.output_dir / "explore",
+                    output_dir=self.output_dir.parent / "explore",
                 )
                 explorer.add_oracle_hook(hard_signals.hook)
 

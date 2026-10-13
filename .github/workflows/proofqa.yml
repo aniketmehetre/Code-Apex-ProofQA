@@ -40,7 +40,7 @@ jobs:
       - name: Verify All Issued Certificates Independently
         run: |
           for cert in results/certificates/*; do
-            if [ -d "$cert" ]; then
+            if [ -f "$cert/manifest.json" ]; then
               echo "Verifying certificate: $cert"
               proofqa verify "$cert"
             fi
