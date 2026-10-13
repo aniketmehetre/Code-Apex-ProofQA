@@ -1,6 +1,6 @@
 # ProofQA 2.0: The Verification-Native Autonomous QA Engineer
 
-[![CI](https://github.com/void-main/proofqa/actions/workflows/proofqa.yml/badge.svg)](https://github.com/void-main/proofqa/actions/workflows/proofqa.yml)
+[![CI](https://github.com/aniketmehetre/Code-Apex-ProofQA/actions/workflows/proofqa.yml/badge.svg)](https://github.com/aniketmehetre/Code-Apex-ProofQA/actions/workflows/proofqa.yml)
 [![Milestone M4](https://img.shields.io/badge/Milestone-M4%20Verified-10b981.svg)](docs/progress.md)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -72,8 +72,8 @@ flowchart TD
 ### 1. Setup
 ```bash
 # Clone and install dependencies
-git clone https://github.com/void-main/proofqa.git
-cd proofqa
+git clone https://github.com/aniketmehetre/Code-Apex-ProofQA.git
+cd Code-Apex-ProofQA
 make setup
 ```
 
