@@ -96,6 +96,41 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def log_requests_middleware(request: Request, call_next):
+    req_log_path = os.environ.get("SHOP_TWIN_REQUEST_LOG")
+    body_data = None
+    if req_log_path and request.method in ("POST", "PUT", "PATCH"):
+        try:
+            body_bytes = await request.body()
+            if body_bytes:
+                try:
+                    body_data = json.loads(body_bytes.decode("utf-8"))
+                except Exception:
+                    body_data = {"_raw": body_bytes.decode("utf-8", errors="ignore")[:500]}
+        except Exception:
+            pass
+
+    response = await call_next(request)
+
+    if req_log_path:
+        try:
+            log_entry = {
+                "timestamp": time.time(),
+                "method": request.method,
+                "path": request.url.path,
+                "query": dict(request.query_params),
+                "status": response.status_code,
+                "body": body_data,
+            }
+            with open(req_log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_entry) + "\n")
+        except Exception:
+            pass
+
+    return response
+
+
 def get_or_create_session_id(request: Request, response: Response, db: Session) -> str:
     session_id = request.cookies.get("session_id")
     if session_id:

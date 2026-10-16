@@ -34,7 +34,8 @@ exit /b %ERRORLEVEL%
 exit /b %ERRORLEVEL%
 
 :bench
-%PYTHON% -m proofbench.runner
+shift
+%PYTHON% -m proofbench.runner %1 %2 %3 %4 %5 %6 %7 %8 %9
 exit /b %ERRORLEVEL%
 
 :demo

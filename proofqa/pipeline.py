@@ -65,6 +65,9 @@ class Pipeline:
         self.session_db_path = Path(session_db_path)
         self.session_db_path.parent.mkdir(parents=True, exist_ok=True)
         self.event_bus = event_bus or PipelineEventBus()
+        self.last_request_log: list[dict[str, Any]] = []
+        self.last_candidates: list[Finding] = []
+        self.last_confirmed_findings: list[Finding] = []
         self._init_session_db()
 
     def _init_session_db(self) -> None:
@@ -92,32 +95,37 @@ class Pipeline:
         """Execute full pipeline: explore -> detect -> replay -> shrink -> certify."""
         await self.event_bus.emit("pipeline_started", {"world": self.world_spec.model_dump()})
         certificates: list[Path] = []
-        candidates: list[Finding] = list(initial_candidates or [])
+        self.last_candidates = []
+        self.last_confirmed_findings = []
+        self.last_request_log = []
 
-        # 1. Start world and explore if no initial candidates supplied
-        if not initial_candidates:
-            world = World(self.world_spec)
-            with world:
-                hard_signals = HardSignalsOracle(world_origin=world.url)
+        # 1. Start world and explore
+        world = World(self.world_spec)
+        with world:
+            hard_signals = HardSignalsOracle(world_origin=world.url)
 
-                explorer = RuleBasedExplorer(
-                    world=world,
-                    budget_steps=step_budget,
-                    output_dir=self.output_dir.parent / "explore",
-                )
-                explorer.add_oracle_hook(hard_signals.hook)
+            explorer = RuleBasedExplorer(
+                world=world,
+                budget_steps=step_budget,
+                seed=self.world_spec.seed,
+                output_dir=self.output_dir / "explore",
+            )
+            explorer.add_oracle_hook(hard_signals.hook)
 
-                await self.event_bus.emit("stage_explore_started", {"budget": step_budget})
-                explore_result = await explorer.explore()
-                candidates = list(hard_signals.candidates)
+            await self.event_bus.emit("stage_explore_started", {"budget": step_budget})
+            explore_result = await explorer.explore()
+            discovered = list(hard_signals.candidates)
+            candidates = list(initial_candidates or []) + discovered
 
-                await self.event_bus.emit(
-                    "stage_explore_completed",
-                    {"candidates_found": len(candidates), "steps": explore_result.steps_executed},
-                )
+            self.last_request_log = list(world.request_log)
+            await self.event_bus.emit(
+                "stage_explore_completed",
+                {"candidates_found": len(candidates), "steps": explore_result.steps_executed},
+            )
 
         # Deduplicate candidate findings before replay
         candidates = deduplicate_findings(candidates)
+        self.last_candidates = list(candidates)
 
         # 2. For each discovered candidate: Replay, Shrink, and Certify
         for cand in candidates:
@@ -164,6 +172,7 @@ class Pipeline:
                     "intent_confirmation_needed": intent_needed,
                 }
             )
+            self.last_confirmed_findings.append(verified_cand)
 
             await self.event_bus.emit("stage_shrink_started", {"finding_id": cand.id})
             shrink_res = await shrink(

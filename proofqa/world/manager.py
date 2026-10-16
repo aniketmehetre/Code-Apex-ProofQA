@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import socket
@@ -35,6 +36,7 @@ class World:
         self.url: str = ""
         self.temp_dir: Path | None = None
         self.runtime_db: Path | None = None
+        self.request_log_path: Path | None = None
         self.seed_db: Path = REPO_ROOT / spec.seed_db
         self.process: subprocess.Popen | None = None
         self.startup_time_ms: float = 0.0
@@ -56,12 +58,15 @@ class World:
         self.port = find_free_port()
         self.url = f"http://127.0.0.1:{self.port}"
 
+        self.request_log_path = self.temp_dir / "request_log.jsonl"
+
         # 3. Build isolated environment
         env = os.environ.copy()
         env["BUGS"] = ",".join(self.spec.bugs)
         env["SEED"] = str(self.spec.seed)
         env["CLOCK_ISO"] = self.spec.clock_iso
         env["SHOP_DB_PATH"] = str(self.runtime_db)
+        env["SHOP_TWIN_REQUEST_LOG"] = str(self.request_log_path)
         env["PORT"] = str(self.port)
         env["PYTHONPATH"] = str(REPO_ROOT)
 
@@ -131,6 +136,24 @@ class World:
             except Exception:
                 pass
             self.temp_dir = None
+
+    @property
+    def request_log(self) -> list[dict[str, Any]]:
+        """Returns parsed server-side request log entries recorded by Shop Twin."""
+        if not self.request_log_path or not self.request_log_path.exists():
+            return []
+        try:
+            lines = self.request_log_path.read_text(encoding="utf-8").strip().splitlines()
+            records = []
+            for line in lines:
+                if line.strip():
+                    try:
+                        records.append(json.loads(line))
+                    except Exception:
+                        pass
+            return records
+        except Exception:
+            return []
 
     def __enter__(self) -> World:
         return self.start()

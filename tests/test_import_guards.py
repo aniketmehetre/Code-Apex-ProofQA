@@ -84,3 +84,27 @@ def test_rule_3_verify_must_not_import_explore_oracles_llm_uncertainty():
                 )
 
     assert not violations, "Rule 3 violations found:\n" + "\n".join(violations)
+
+
+def test_reach_and_request_log_isolation():
+    """Server-side request log and reach specs must never be imported from explore, oracles, cert, or llm."""
+    target_dirs = [
+        PROOFQA_DIR / "explore",
+        PROOFQA_DIR / "oracles",
+        PROOFQA_DIR / "cert",
+        PROOFQA_DIR / "llm",
+    ]
+    violations = []
+    for target_dir in target_dirs:
+        for py_file in target_dir.rglob("*.py"):
+            for mod, lineno in get_all_imported_modules(py_file):
+                if (
+                    "reach" in mod
+                    or "proofbench" in mod
+                    or "proofqa.bench" in mod
+                ):
+                    violations.append(
+                        f"{py_file.relative_to(REPO_ROOT)}:{lineno} imports forbidden '{mod}'"
+                    )
+
+    assert not violations, "Reach isolation violations found:\n" + "\n".join(violations)
