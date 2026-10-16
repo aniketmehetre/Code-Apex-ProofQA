@@ -52,6 +52,7 @@ playwright/.cache/
 # Results and temporary artifacts
 /results/*
 !/results/.gitkeep
+!/results/recall/**
 
 # Environment variables
 .env
