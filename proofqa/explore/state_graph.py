@@ -94,6 +94,20 @@ class StateGraph:
 
         return state_id
 
+    def count_states_for_path(self, url_path: str) -> int:
+        """Returns the number of unique states discovered for a given URL path."""
+        norm_path = (url_path or "/").split("?")[0].rstrip("/")
+        if not norm_path:
+            norm_path = "/"
+        count = 0
+        for _, data in self.graph.nodes(data=True):
+            p = (data.get("url_path") or "/").split("?")[0].rstrip("/")
+            if not p:
+                p = "/"
+            if p == norm_path:
+                count += 1
+        return count
+
     def record_transition(
         self,
         source_id: str,

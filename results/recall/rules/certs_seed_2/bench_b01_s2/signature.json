@@ -1,0 +1,8 @@
+{
+  "kind": "http_5xx",
+  "first_party_endpoint": "/api/cart",
+  "status": 500,
+  "error_type": null,
+  "message_norm": "HTTP <NUM> on /api/cart",
+  "top_frame": null
+}

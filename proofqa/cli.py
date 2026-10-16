@@ -27,6 +27,7 @@ def run(
     bugs: Optional[str] = typer.Option(None, "--bugs", help="Comma-separated bug IDs (e.g. B01,B03,B10)"),
     budget: int = typer.Option(20, "--budget", help="Exploration step budget"),
     replays: int = typer.Option(2, "--replays", help="Number of confirmation replays required (k of k)"),
+    level: str = typer.Option("rules", "--level", help="Explorer level (monkey, rules, rules_probes, rules_probes_goexplore, full)"),
     out: str = typer.Option("results/certificates", "--out", help="Certificate output directory"),
 ) -> None:
     """Run full ProofQA pipeline: explore, detect, prove, shrink, and certify."""
@@ -37,9 +38,9 @@ def run(
         bug_list = [b.strip() for b in world.split(",") if b.strip()]
 
     spec = WorldSpec(app_id="shop_twin", bugs=bug_list)
-    typer.echo(f"[*] Starting ProofQA Pipeline on app={spec.app} with bugs={spec.bugs}")
+    typer.echo(f"[*] Starting ProofQA Pipeline (level={level}) on app={spec.app} with bugs={spec.bugs}")
 
-    pipeline = Pipeline(world_spec=spec, output_dir=out)
+    pipeline = Pipeline(world_spec=spec, output_dir=out, level=level)
 
     def on_event(ev: dict) -> None:
         event_name = ev.get("event")

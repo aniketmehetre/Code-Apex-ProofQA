@@ -80,11 +80,18 @@ class BenchmarkRunner:
         level: str = "rules",
     ) -> None:
         self.seeds = parse_seeds(seeds)
-        self.results_dir = Path(results_dir)
-        self.output_file = Path(output_file)
+        self.level = level
+        if str(results_dir) == "results":
+            self.results_dir = Path(f"results/recall/{self.level}")
+        else:
+            self.results_dir = Path(results_dir)
+        self.output_file = (
+            self.results_dir / "runs.jsonl"
+            if str(output_file) == "results/runs.jsonl"
+            else Path(output_file)
+        )
         self.step_budget = step_budget
         self.jobs = max(1, jobs)
-        self.level = level
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self.adjudicator = Adjudicator()
 
@@ -97,6 +104,7 @@ class BenchmarkRunner:
             world_spec=spec,
             output_dir=cert_seed_dir,
             session_db_path=session_db,
+            level=self.level,
         )
 
         # Baseline targeted candidate for B01 verification

@@ -58,6 +58,8 @@ class Pipeline:
         output_dir: Path | str = "results/certificates",
         session_db_path: Path | str = "results/session.db",
         event_bus: PipelineEventBus | None = None,
+        level: str = "rules",
+        explorer_config: Any = None,
     ) -> None:
         self.world_spec = world_spec
         self.output_dir = Path(output_dir)
@@ -65,6 +67,8 @@ class Pipeline:
         self.session_db_path = Path(session_db_path)
         self.session_db_path.parent.mkdir(parents=True, exist_ok=True)
         self.event_bus = event_bus or PipelineEventBus()
+        self.level = level
+        self.explorer_config = explorer_config
         self.last_request_log: list[dict[str, Any]] = []
         self.last_candidates: list[Finding] = []
         self.last_confirmed_findings: list[Finding] = []
@@ -109,6 +113,8 @@ class Pipeline:
                 budget_steps=step_budget,
                 seed=self.world_spec.seed,
                 output_dir=self.output_dir / "explore",
+                level=self.level,
+                config=self.explorer_config,
             )
             explorer.add_oracle_hook(hard_signals.hook)
 

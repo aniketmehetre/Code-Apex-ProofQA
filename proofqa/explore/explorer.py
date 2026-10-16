@@ -18,7 +18,11 @@ from proofqa.contracts import (
     StateFingerprint,
     TapeEvent,
 )
+from proofqa.explore.config import ExplorerConfig, ExplorerLevel
+from proofqa.explore.grounding import ground_action, sanitize_input_value
 from proofqa.explore.inputs import get_field_input
+from proofqa.explore.probes.base import ProbeContext
+from proofqa.explore.probes.registry import ProbeRegistry
 from proofqa.explore.state_graph import StateGraph
 from proofqa.tape.recorder import TapeRecorder
 from proofqa.world.manager import World
@@ -48,7 +52,7 @@ class ExplorationResult:
 
 
 class RuleBasedExplorer:
-    """Autonomous rule-based explorer navigating state frontiers without LLM dependencies."""
+    """Autonomous explorer supporting configurable levels (monkey, rules, rules_probes, etc.)."""
 
     def __init__(
         self,
@@ -60,15 +64,31 @@ class RuleBasedExplorer:
         output_dir: Path | str | None = None,
         sqlite_path: Path | str | None = None,
         proposer: Any = None,
+        level: ExplorerLevel = "rules",
+        probe_registry: ProbeRegistry | None = None,
+        config: ExplorerConfig | None = None,
     ) -> None:
         self.world = world
-        self.budget_steps = budget_steps
-        self.budget_depth = budget_depth
-        self.budget_time_seconds = budget_time_seconds
         self.seed = seed
         self.output_dir = Path(output_dir) if output_dir else Path("results/explore")
         self.sqlite_path = Path(sqlite_path) if sqlite_path else (self.output_dir / "graph.db")
         self.proposer = proposer
+
+        if config is not None:
+            self.config = config
+        else:
+            self.config = ExplorerConfig(
+                level=level,
+                max_actions_per_run=budget_steps,
+                budget_depth=budget_depth,
+                budget_time_seconds=budget_time_seconds,
+            )
+
+        self.budget_steps = self.config.max_actions_per_run
+        self.budget_depth = self.config.budget_depth
+        self.budget_time_seconds = self.config.budget_time_seconds
+        self.level = self.config.level
+        self.probe_registry = probe_registry or ProbeRegistry(per_probe_budget=self.config.per_probe_budget)
 
         self.graph = StateGraph(self.sqlite_path)
         self.hooks: list[Callable[[StateFingerprint, Action, list[TapeEvent], list[Action]], None]] = []
@@ -111,74 +131,134 @@ class RuleBasedExplorer:
             candidates = await extract_candidate_actions(page, origin=self.world.url)
             current_state_id = self.graph.add_state(fp, candidates, depth=0)
 
+            probe_queue: list[Action] = []
+
             while steps < self.budget_steps and (time.time() - start_time) < self.budget_time_seconds:
-                # Check for loop / trap conditions
-                is_trap = self._is_trap(fp.url_path)
-                visit_count = self.graph.graph.nodes[current_state_id]["visit_count"]
+                # ---------------- MONKEY LEVEL ----------------
+                if self.level == "monkey":
+                    if not candidates:
+                        await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
+                        await asyncio.sleep(0.3)
+                        fp = await get_page_fingerprint(page)
+                        candidates = await extract_candidate_actions(page, origin=self.world.url)
+                        if not candidates:
+                            break
 
-                # If on trap page visited more than once, prune and force backtrack
-                untried_actions = self.graph.get_untried_actions(current_state_id)
-                if is_trap and visit_count >= 1:
-                    untried_actions = []
+                    candidates.sort(key=lambda a: (a.kind.value, a.id))
+                    selected_candidate = rng.choice(candidates)
+                    if selected_candidate.kind == ActionKind.FILL:
+                        val = get_field_input(selected_candidate.locator, steps, seed=self.seed)
+                        selected_candidate = Action(
+                            id=selected_candidate.id,
+                            kind=selected_candidate.kind,
+                            locator=selected_candidate.locator,
+                            value=sanitize_input_value(val),
+                            params=selected_candidate.params,
+                        )
+                    selected_action = ground_action(selected_candidate, candidates)
+                    if selected_action is None:
+                        selected_action = candidates[0]
 
-                # If no untried actions in current state or depth exceeded, backtrack!
-                if not untried_actions or current_depth >= self.budget_depth:
-                    nearest = self.graph.find_nearest_state_with_untried(current_state_id)
-                    if not nearest:
-                        # Full graph exhausted within budgets
-                        break
+                # ---------------- RULES & PROBES LEVELS ----------------
+                else:
+                    if probe_queue:
+                        selected_action = probe_queue.pop(0)
+                    else:
+                        # Check for loop / trap conditions & per-path state cap
+                        is_trap = self._is_trap(fp.url_path)
+                        visit_count = self.graph.graph.nodes[current_state_id]["visit_count"]
+                        path_state_count = self.graph.count_states_for_path(fp.url_path)
 
-                    # Backtrack by resetting world and replaying path from root
-                    self.world.reset()
-                    await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
-                    await asyncio.sleep(0.3)
+                        untried_actions = self.graph.get_untried_actions(current_state_id)
+                        if (is_trap and visit_count >= 1) or path_state_count > self.config.per_path_state_cap:
+                            untried_actions = []
 
-                    replay_path = self.graph.path_from_root(nearest)
-                    for path_action in replay_path:
-                        if path_action.kind == ActionKind.GOTO:
-                            val = path_action.value or "/"
-                            target_u = val if val.startswith("http") else f"{self.world.url.rstrip('/')}{val}"
-                            await page.goto(target_u, wait_until="domcontentloaded", timeout=10000)
+                        # If no untried actions in current state or depth exceeded, backtrack!
+                        if not untried_actions or current_depth >= self.budget_depth:
+                            nearest = self.graph.find_nearest_state_with_untried(current_state_id)
+                            if not nearest:
+                                # Full graph exhausted within budgets
+                                break
+
+                            # Backtrack by resetting world and replaying path from root
+                            self.world.reset()
+                            await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
+                            await asyncio.sleep(0.3)
+
+                            replay_path = self.graph.path_from_root(nearest)
+                            for path_action in replay_path:
+                                if path_action.kind == ActionKind.GOTO:
+                                    val = path_action.value or "/"
+                                    target_u = val if val.startswith("http") else f"{self.world.url.rstrip('/')}{val}"
+                                    await page.goto(target_u, wait_until="domcontentloaded", timeout=10000)
+                                else:
+                                    await execute(page, path_action)
+                                await asyncio.sleep(0.15)
+
+                            fp = await get_page_fingerprint(page)
+                            current_state_id = nearest
+                            current_depth = len(replay_path)
+                            untried_actions = self.graph.get_untried_actions(current_state_id)
+                            candidates = await extract_candidate_actions(page, origin=self.world.url)
+                            if not untried_actions:
+                                break
+
+                        # Check if active probes apply at this state (rules_probes, rules_probes_goexplore, full)
+                        if self.level in ("rules_probes", "rules_probes_goexplore", "full") and self.probe_registry.probes:
+                            ctx = ProbeContext(
+                                grounded_controls=candidates,
+                                semantic_state_key=f"{fp.url_path}:{fp.aria_hash or fp.simhash}",
+                                budget_left=self.budget_steps - steps,
+                                rng=rng,
+                            )
+                            probe_acts = self.probe_registry.run_applicable_probes(
+                                ctx,
+                                max_probes_per_page=self.config.per_page_probe_cap,
+                            )
+                            if probe_acts:
+                                selected_action = probe_acts[0]
+                                probe_queue.extend(probe_acts[1:])
+                            else:
+                                selected_action = None
                         else:
-                            await execute(page, path_action)
-                        await asyncio.sleep(0.15)
+                            selected_action = None
 
-                    fp = await get_page_fingerprint(page)
-                    current_state_id = nearest
-                    current_depth = len(replay_path)
-                    untried_actions = self.graph.get_untried_actions(current_state_id)
-                    if not untried_actions:
-                        break
+                        if selected_action is None:
+                            # Choose next action from untried
+                            untried_actions.sort(key=lambda a: (a.kind.value, a.id))
+                            if self.proposer:
+                                try:
+                                    raw_text = await page.inner_text("body")
+                                except Exception:
+                                    raw_text = ""
+                                suggested = self.proposer.propose(
+                                    candidates=untried_actions,
+                                    page_text=raw_text,
+                                    state_summary=f"Path: {fp.url_path}, controls: {fp.control_count}",
+                                )
+                                if suggested:
+                                    g = ground_action(suggested[0], candidates)
+                                    if g is not None:
+                                        selected_action = g
 
-                # Choose next action from untried
-                untried_actions.sort(key=lambda a: (a.kind.value, a.id))
-                selected_action = None
-                if self.proposer:
-                    try:
-                        raw_text = await page.inner_text("body")
-                    except Exception:
-                        raw_text = ""
-                    suggested = self.proposer.propose(
-                        candidates=untried_actions,
-                        page_text=raw_text,
-                        state_summary=f"Path: {fp.url_path}, controls: {fp.control_count}",
-                    )
-                    if suggested:
-                        selected_action = suggested[0]
+                            if selected_action is None:
+                                selected_action = rng.choice(untried_actions)
 
-                if selected_action is None:
-                    selected_action = rng.choice(untried_actions)
+                            # Form filling value assignment
+                            if selected_action.kind == ActionKind.FILL:
+                                val = get_field_input(selected_action.locator, steps, seed=self.seed)
+                                selected_action = Action(
+                                    id=selected_action.id,
+                                    kind=selected_action.kind,
+                                    locator=selected_action.locator,
+                                    value=sanitize_input_value(val),
+                                    params=selected_action.params,
+                                )
 
-                # Form filling value assignment
-                if selected_action.kind == ActionKind.FILL:
-                    val = get_field_input(selected_action.locator, steps, seed=self.seed)
-                    selected_action = Action(
-                        id=selected_action.id,
-                        kind=selected_action.kind,
-                        locator=selected_action.locator,
-                        value=val,
-                        params=selected_action.params,
-                    )
+                # Choke point validation against current page candidates
+                grounded = ground_action(selected_action, candidates)
+                if grounded is not None:
+                    selected_action = grounded
 
                 # Execute action
                 step_start = time.time()
@@ -210,6 +290,7 @@ class RuleBasedExplorer:
 
                 current_state_id = new_state_id
                 fp = new_fp
+                candidates = new_candidates
                 current_depth += 1
                 steps += 1
 
