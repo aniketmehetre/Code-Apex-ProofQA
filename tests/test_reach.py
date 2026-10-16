@@ -137,3 +137,72 @@ def test_all_ten_specs_registered():
         bid = f"B{i:02d}"
         assert bid in REACH_SPECS
         assert REACH_SPECS[bid].bug_id == bid
+
+
+def test_h01_reach():
+    pos_log = [
+        {"method": "POST", "path": "/api/cart", "body": {"product_id": 1, "quantity": -1}},
+    ]
+    neg_log = [
+        {"method": "POST", "path": "/api/cart", "body": {"product_id": 1, "quantity": 1}},
+    ]
+    assert is_bug_reached("H01", pos_log) is True
+    assert is_bug_reached("H01", neg_log) is False
+
+
+def test_h02_reach():
+    pos_quote = [{"method": "GET", "path": "/api/products", "query": {"q": 'test"quote'}}]
+    pos_percent = [{"method": "GET", "path": "/api/products", "query": {"q": "100%"}}]
+    pos_backslash = [{"method": "GET", "path": "/api/products", "query": {"q": "test\\escape"}}]
+    neg = [{"method": "GET", "path": "/api/products", "query": {"q": "clean query"}}]
+    assert is_bug_reached("H02", pos_quote) is True
+    assert is_bug_reached("H02", pos_percent) is True
+    assert is_bug_reached("H02", pos_backslash) is True
+    assert is_bug_reached("H02", neg) is False
+
+
+def test_h03_reach():
+    pos_log = [
+        {"method": "GET", "path": "/api/products", "query": {"sort": "name"}},
+        {"method": "GET", "path": "/api/products", "query": {"sort": "default"}},
+    ]
+    neg_log = [
+        {"method": "GET", "path": "/api/products", "query": {"sort": "name"}},
+    ]
+    assert is_bug_reached("H03", pos_log) is True
+    assert is_bug_reached("H03", neg_log) is False
+
+
+def test_h04_reach():
+    pos_log = [
+        {"method": "PUT", "path": "/api/account/profile", "body": {"phone": "555-1234"}},
+        {"method": "GET", "path": "/api/account/profile"},
+    ]
+    neg_log = [
+        {"method": "GET", "path": "/api/account/profile"},
+    ]
+    assert is_bug_reached("H04", pos_log) is True
+    assert is_bug_reached("H04", neg_log) is False
+
+
+def test_h05_reach():
+    pos_log = [
+        {"method": "POST", "path": "/api/cart", "body": {"product_id": 1, "quantity": 1}},
+        {"method": "POST", "path": "/api/coupons/apply", "body": {"code": "SAVE10"}},
+        {"method": "POST", "path": "/api/checkout", "body": {"address": "123 Main"}},
+    ]
+    neg_log = [
+        {"method": "POST", "path": "/api/cart", "body": {"product_id": 1, "quantity": 1}},
+        {"method": "POST", "path": "/api/coupons/apply", "body": {"code": "SAVE10"}},
+        {"method": "DELETE", "path": "/api/cart/1"},
+        {"method": "POST", "path": "/api/checkout", "body": {"address": "123 Main"}},
+    ]
+    assert is_bug_reached("H05", pos_log) is True
+    assert is_bug_reached("H05", neg_log) is False
+
+
+def test_all_heldout_specs_registered():
+    for i in range(1, 6):
+        hid = f"H{i:02d}"
+        assert hid in REACH_SPECS
+        assert REACH_SPECS[hid].bug_id == hid

@@ -108,3 +108,50 @@ def test_reach_and_request_log_isolation():
                     )
 
     assert not violations, "Reach isolation violations found:\n" + "\n".join(violations)
+
+
+def test_blindness_guard_ast():
+    """Blindness guard: explore, llm, and spec must not import bug/heldout catalogues or ground truth."""
+    target_dirs = [
+        PROOFQA_DIR / "explore",
+        PROOFQA_DIR / "llm",
+    ]
+    if (PROOFQA_DIR / "spec").exists():
+        target_dirs.append(PROOFQA_DIR / "spec")
+
+    forbidden_tokens = (
+        "bugs",
+        "heldout",
+        "ground_truth",
+        "proofbench",
+        "proofqa.bench",
+    )
+    violations = []
+    for target_dir in target_dirs:
+        for py_file in target_dir.rglob("*.py"):
+            for mod, lineno in get_all_imported_modules(py_file):
+                for tok in forbidden_tokens:
+                    if tok in mod:
+                        violations.append(
+                            f"{py_file.relative_to(REPO_ROOT)}:{lineno} imports forbidden '{mod}'"
+                        )
+
+    assert not violations, "Blindness guard AST violations found:\n" + "\n".join(violations)
+
+
+def test_blindness_guard_runtime_stripped_worldspec():
+    """Runtime test: Explorer functions identically when provided a stripped WorldSpec with bugs=[]."""
+    from proofqa.contracts import WorldSpec
+    from proofqa.explore.explorer import RuleBasedExplorer
+    from proofqa.world.manager import World
+
+    raw_spec = WorldSpec(app_id="shop_twin", bugs=["B01", "B02", "H01"], seed=42)
+    stripped_spec = raw_spec.model_copy(update={"bugs": []})
+
+    assert len(stripped_spec.bugs) == 0
+
+    # RuleBasedExplorer does not rely on or read spec.bugs
+    dummy_world = World(stripped_spec)
+    explorer = RuleBasedExplorer(world=dummy_world, budget_steps=1, seed=42)
+    assert not hasattr(explorer, "bugs")
+    assert not hasattr(explorer, "ground_truth")

@@ -29,6 +29,12 @@ from apps.shop_twin.backend.models import (
     User,
     UserSession,
 )
+from proofqa.world.heldout import (
+    check_d08_cart_quantity_bounds,
+    check_h01_cart_quantity,
+    check_h02_search_query,
+    is_heldout_on,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 FRONTEND_DIST = REPO_ROOT / "apps" / "shop_twin" / "frontend" / "dist"
@@ -83,6 +89,11 @@ class AddressRequest(BaseModel):
 
 class CheckoutRequest(BaseModel):
     address: str
+
+
+class ProfileRequest(BaseModel):
+    phone: Optional[str] = None
+    display_name: Optional[str] = None
 
 
 app = FastAPI(title="Shop Twin Backend", version="1.0.0")
@@ -262,6 +273,9 @@ def get_products(
             detail="Database error: syntax error near ''' - unescaped query parameter",
         )
 
+    # H02: search containing double quote, percent sign, or backslash returns 500
+    check_h02_search_query(q)
+
     statement = select(Product)
 
     # B06: category filter on page 2 returns items from other categories
@@ -280,13 +294,22 @@ def get_products(
 
     # B05: sorting by price and then returning to default order retains price sort
     sess = db.get(UserSession, session_id) if session_id else None
-    if bugs.is_on("B05") and sess and (not sort or sort == ""):
+    if bugs.is_on("B05") and sess and (not sort or sort in ("", "default")):
         if getattr(sess, "last_sort", None) == "price_asc":
             sort = "price_asc"
 
+    # H03: sorting by name and then returning to default order retains name sort
+    if is_heldout_on("H03") and sess and (not sort or sort in ("", "default")):
+        if getattr(sess, "last_sort", None) == "name":
+            sort = "name"
+
     # Sort
     if sort == "price_asc":
-        statement = statement.order_by(col(Product.price).asc())
+        # D06: equal-price items tie-break in reverse order
+        if is_heldout_on("D06"):
+            statement = statement.order_by(col(Product.price).asc(), col(Product.id).desc())
+        else:
+            statement = statement.order_by(col(Product.price).asc())
         if sess:
             sess.last_sort = "price_asc"
             db.add(sess)
@@ -295,6 +318,10 @@ def get_products(
         statement = statement.order_by(col(Product.price).desc())
     elif sort == "name":
         statement = statement.order_by(col(Product.name).asc())
+        if sess:
+            sess.last_sort = "name"
+            db.add(sess)
+            db.commit()
     else:
         statement = statement.order_by(col(Product.id).asc())
 
@@ -388,6 +415,12 @@ def add_to_cart(
             status_code=500,
             detail="ZeroQuantityException: Cannot allocate cart buffer with zero item quantity",
         )
+
+    # H01: POST cart with negative quantity returns 500
+    check_h01_cart_quantity(data.quantity)
+
+    # D08: Out-of-bounds quantity returns friendly 400
+    check_d08_cart_quantity_bounds(data.quantity)
 
     # B09: add to cart returns 500 about one request in three (seeded random)
     if bugs.is_on("B09"):
@@ -511,6 +544,13 @@ def checkout(
             detail="NullReferenceException: Coupon item binding dereference failed after line item deletion",
         )
 
+    # H05: state-dependent exception when checking out under coupon without line item modification
+    if is_heldout_on("H05") and sess and sess.applied_coupon and not getattr(sess, "removed_item", False):
+        raise HTTPException(
+            status_code=500,
+            detail="NullReferenceException: Direct coupon checkout without line item verification failed",
+        )
+
     cart = get_cart(request, response, session_id=session_id, db=db)
     if not cart["items"]:
         raise HTTPException(status_code=400, detail="Cannot checkout an empty cart")
@@ -572,9 +612,82 @@ def get_address(
     return {"address": user.address if user else None}
 
 
+@app.put("/api/account/profile")
+def update_profile(
+    data: ProfileRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    session_id = get_or_create_session_id(request, response, db)
+    sess = db.get(UserSession, session_id)
+    if not sess or not sess.user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    user = db.get(User, sess.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # H04: profile display_name is not persisted
+    if not is_heldout_on("H04"):
+        if data.display_name is not None:
+            user.name = data.display_name
+        db.add(user)
+        db.commit()
+
+    return {"status": "success", "display_name": data.display_name}
+
+
+@app.get("/api/account/profile")
+def get_profile(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    session_id = get_or_create_session_id(request, response, db)
+    sess = db.get(UserSession, session_id)
+    if not sess or not sess.user_id:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    user = db.get(User, sess.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # H04: saved profile fields are lost on retrieval
+    if is_heldout_on("H04"):
+        return {"display_name": None}
+
+    return {"display_name": user.name}
+
+
 # ============================================================================
 # Decoys (Always On) & Adversarial Traps
 # ============================================================================
+
+_recent_calls: list[float] = []
+
+
+@app.get("/api/preferences")
+def get_device_preferences():
+    """D07: UI preference stored on this device only."""
+    return {
+        "theme": "dark",
+        "device_local_only": True,
+        "copy": "Preferences stored on this device only. Cloud synchronization disabled by design.",
+    }
+
+
+@app.get("/api/rate-limit-check")
+def check_rate_limiting():
+    """D10: A rapidly-hit endpoint returns friendly 429, never 5xx."""
+    now = time.time()
+    _recent_calls.append(now)
+    recent = [t for t in _recent_calls if now - t < 1.0]
+    _recent_calls[:] = recent
+    if is_heldout_on("D10") and len(recent) >= 5:
+        raise HTTPException(
+            status_code=429,
+            detail="TooManyRequests: Friendly rate limit exceeded. Please retry in 1s.",
+        )
+    return {"status": "ok", "recent_requests": len(recent)}
 
 @app.get("/api/decoy/not-found", response_class=HTMLResponse)
 def decoy_404():

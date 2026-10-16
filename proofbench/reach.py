@@ -180,6 +180,83 @@ def _check_b10(log: list[dict[str, Any]]) -> bool:
     return False
 
 
+def _check_h01(log: list[dict[str, Any]]) -> bool:
+    """H01: POST /api/cart with quantity < 0."""
+    for req in log:
+        if req.get("method") == "POST" and req.get("path") == "/api/cart":
+            body = req.get("body")
+            if isinstance(body, dict):
+                qty = body.get("quantity")
+                try:
+                    if int(qty) < 0:
+                        return True
+                except (ValueError, TypeError):
+                    pass
+    return False
+
+
+def _check_h02(log: list[dict[str, Any]]) -> bool:
+    """H02: GET /api/products with double quote, percent sign, or backslash in q."""
+    for req in log:
+        if req.get("method") == "GET" and req.get("path") == "/api/products":
+            q = req.get("query", {})
+            query_str = q.get("q", "")
+            if any(char in query_str for char in ('"', '%', "\\")):
+                return True
+    return False
+
+
+def _check_h03(log: list[dict[str, Any]]) -> bool:
+    """H03: Products sorted by name then reverted to default sort."""
+    has_name_sort = False
+    for req in log:
+        if req.get("method") == "GET" and req.get("path") == "/api/products":
+            q = req.get("query", {})
+            sort_val = q.get("sort")
+            if sort_val in ("name", "name_asc"):
+                has_name_sort = True
+            elif has_name_sort and (not sort_val or sort_val in ("", "default")):
+                return True
+    return False
+
+
+def _check_h04(log: list[dict[str, Any]]) -> bool:
+    """H04: PUT /api/account/profile with phone or display_name, then GET /api/account/profile."""
+    has_put = False
+    for req in log:
+        m = req.get("method")
+        p = req.get("path", "")
+        if m == "PUT" and p == "/api/account/profile":
+            body = req.get("body", {})
+            if isinstance(body, dict) and ("phone" in body or "display_name" in body):
+                has_put = True
+        elif m == "GET" and p == "/api/account/profile":
+            if has_put:
+                return True
+    return False
+
+
+def _check_h05(log: list[dict[str, Any]]) -> bool:
+    """H05: Add to cart, apply coupon, checkout directly without item removal."""
+    has_cart_add = False
+    has_coupon = False
+    has_removal = False
+    for req in log:
+        m = req.get("method")
+        p = req.get("path", "")
+        if m == "POST" and p == "/api/cart":
+            has_cart_add = True
+        elif m == "POST" and "/api/coupons/apply" in p:
+            if has_cart_add:
+                has_coupon = True
+        elif (m == "DELETE" and "/api/cart/" in p) or (m == "PATCH" and "/api/cart/" in p):
+            has_removal = True
+        elif m == "POST" and p == "/api/checkout":
+            if has_coupon and not has_removal:
+                return True
+    return False
+
+
 REACH_SPECS: dict[str, ReachSpec] = {
     "B01": ReachSpec("B01", "POST /api/cart with quantity 0", _check_b01),
     "B02": ReachSpec("B02", "Coupon applied, item removed, checkout called", _check_b02),
@@ -191,6 +268,11 @@ REACH_SPECS: dict[str, ReachSpec] = {
     "B08": ReachSpec("B08", "POST /api/register with 4-char password", _check_b08),
     "B09": ReachSpec("B09", "Repeated add to cart requests (>=3)", _check_b09),
     "B10": ReachSpec("B10", "GET /api/products with single quote in q", _check_b10),
+    "H01": ReachSpec("H01", "POST /api/cart with negative quantity", _check_h01),
+    "H02": ReachSpec("H02", "GET /api/products with quote, percent, or backslash in q", _check_h02),
+    "H03": ReachSpec("H03", "Sort by name then revert to default", _check_h03),
+    "H04": ReachSpec("H04", "PUT profile phone/name, then GET profile", _check_h04),
+    "H05": ReachSpec("H05", "Cart add, coupon apply, checkout directly", _check_h05),
 }
 
 
@@ -200,3 +282,4 @@ def is_bug_reached(bug_id: str, request_log: list[dict[str, Any]]) -> bool:
     if not spec:
         return False
     return spec.is_reached(request_log)
+

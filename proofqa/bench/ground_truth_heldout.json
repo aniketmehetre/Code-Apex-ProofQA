@@ -1,0 +1,72 @@
+[
+  {
+    "id": "H01",
+    "class": "A",
+    "category": "crash",
+    "difficulty": 1,
+    "minimal_trigger_description": "POST /api/cart with negative quantity",
+    "expected_signature": {
+      "kind": "http_5xx",
+      "status": 500,
+      "error_type": "NegativeQuantityException",
+      "message_norm": "NegativeQuantityException: Cannot allocate cart buffer with negative item quantity",
+      "first_party_endpoint": "/api/cart"
+    }
+  },
+  {
+    "id": "H02",
+    "class": "A",
+    "category": "crash_injection",
+    "difficulty": 2,
+    "minimal_trigger_description": "GET /api/products with double quote, percent, or backslash in q",
+    "expected_signature": {
+      "kind": "http_5xx",
+      "status": 500,
+      "error_type": "DatabaseError",
+      "message_norm": "DatabaseError: syntax error near unescaped search token",
+      "first_party_endpoint": "/api/products"
+    }
+  },
+  {
+    "id": "H03",
+    "class": "B",
+    "category": "metamorphic_sort",
+    "difficulty": 3,
+    "minimal_trigger_description": "Sort products by name, then revert to default sort",
+    "expected_signature": {
+      "kind": "relation_violation",
+      "status": null,
+      "error_type": "MetamorphicViolation",
+      "message_norm": "Reverting from name sort to default does not restore initial ID ordering",
+      "first_party_endpoint": "/api/products"
+    }
+  },
+  {
+    "id": "H04",
+    "class": "B",
+    "category": "persistence",
+    "difficulty": 2,
+    "minimal_trigger_description": "PUT /api/account/profile with phone or display_name, then GET /api/account/profile",
+    "expected_signature": {
+      "kind": "relation_violation",
+      "status": null,
+      "error_type": "MetamorphicViolation",
+      "message_norm": "Saved account profile field is lost upon subsequent retrieval",
+      "first_party_endpoint": "/api/account/profile"
+    }
+  },
+  {
+    "id": "H05",
+    "class": "A",
+    "category": "stateful_crash",
+    "difficulty": 3,
+    "minimal_trigger_description": "Add product, Apply coupon, Checkout directly without item removal",
+    "expected_signature": {
+      "kind": "http_5xx",
+      "status": 500,
+      "error_type": "NullReferenceException",
+      "message_norm": "NullReferenceException: Direct coupon checkout without line item verification failed",
+      "first_party_endpoint": "/api/checkout"
+    }
+  }
+]

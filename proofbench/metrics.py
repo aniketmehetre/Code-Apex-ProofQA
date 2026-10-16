@@ -17,6 +17,8 @@ def compute_metrics(
     total_findings = 0
     true_bugs_found: set[str] = set()
     decoy_hits = 0
+    decoy_dev_hits = 0
+    decoy_heldout_hits = 0
     false_positives = 0
     valid_certificates = 0
     total_certificates = 0
@@ -35,6 +37,10 @@ def compute_metrics(
                 true_bugs_found.add(bid)
             elif status == "decoy_hit":
                 decoy_hits += 1
+                if bid in ("D06", "D07", "D08", "D09", "D10"):
+                    decoy_heldout_hits += 1
+                else:
+                    decoy_dev_hits += 1
             elif status == "false_positive":
                 false_positives += 1
 
@@ -73,6 +79,8 @@ def compute_metrics(
         "certificate_validity_rate": round(cert_validity_rate, 4),
         "certificate_validity_ci": [round(cv_lower, 4), round(cv_upper, 4)],
         "decoy_false_positive_rate": 0.0 if decoy_hits == 0 else round(decoy_hits / max(1, total_findings), 4),
+        "decoy_fp_dev_rate": 0.0 if decoy_dev_hits == 0 else round(decoy_dev_hits / max(1, total_findings), 4),
+        "decoy_fp_heldout_rate": 0.0 if decoy_heldout_hits == 0 else round(decoy_heldout_hits / max(1, total_findings), 4),
         "average_shrink_reduction_pct": round(shrink_ratio * 100, 1),
         "total_certificates_evaluated": total_certificates,
         "adversarial_hijack_rate": 0.0,
