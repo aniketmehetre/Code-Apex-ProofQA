@@ -134,6 +134,18 @@ async def verify_certificate(
             print("VERDICT: TAMPERED")
         return VerifyVerdict(verdict=VerifyVerdictKind.TAMPERED, reason=str(exc))
 
+    # Read claim tier from claim.json
+    claim_tier = None
+    claim_file = path / "claim.json"
+    if claim_file.exists():
+        try:
+            claim_data = json.loads(claim_file.read_text(encoding="utf-8"))
+            claim_tier = claim_data.get("tier")
+        except Exception:
+            pass
+
+    actual_replays = max(replay_count, 5) if claim_tier == "INTERMITTENT" else replay_count
+
     # --- Step 3: Rebuild World Environment ---
     world = World(world_spec)
     try:
@@ -152,7 +164,7 @@ async def verify_certificate(
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=True)
 
-            for run_idx in range(replay_count):
+            for run_idx in range(actual_replays):
                 context = await browser.new_context(viewport={"width": 1280, "height": 720})
                 page = await context.new_page()
 
@@ -205,7 +217,12 @@ async def verify_certificate(
                             loc = page.locator(action.locator.css_fallback)
 
                         if loc and await loc.count() > 0:
-                            await loc.first.click(timeout=5000)
+                            burst_count = getattr(action, "burst", 1) or 1
+                            if burst_count > 1:
+                                tasks = [loc.first.click(timeout=5000, force=True) for _ in range(burst_count)]
+                                await asyncio.gather(*tasks, return_exceptions=True)
+                            else:
+                                await loc.first.click(timeout=5000)
                             await asyncio.sleep(0.3)
                     elif action.kind == ActionKind.FILL and action.locator:
                         loc = None
@@ -240,13 +257,29 @@ async def verify_certificate(
     world.stop()
 
     if verbose:
-        print(f"CHECK 3: Replayed {replay_count} times; target signature reproduced {reproduced_count}/{replay_count}.")
+        print(f"CHECK 3: Replayed {actual_replays} times; target signature reproduced {reproduced_count}/{actual_replays}.")
 
-    if reproduced_count >= replay_count // 2 + 1:
-        if verbose:
-            print("VERDICT: VALID")
-        return VerifyVerdict(verdict=VerifyVerdictKind.VALID, reason=f"Reproduced {reproduced_count}/{replay_count}")
+    if claim_tier == "INTERMITTENT":
+        if reproduced_count >= 2:
+            if verbose:
+                print("VERDICT: VALID_INTERMITTENT")
+            return VerifyVerdict(
+                verdict=VerifyVerdictKind.VALID_INTERMITTENT,
+                reason=f"Reproduced {reproduced_count}/{actual_replays} (meets m-of-n intermittent threshold)",
+            )
+        else:
+            if verbose:
+                print("VERDICT: INVALID")
+            return VerifyVerdict(
+                verdict=VerifyVerdictKind.INVALID,
+                reason=f"Only reproduced {reproduced_count}/{actual_replays} under INTERMITTENT threshold 2",
+            )
     else:
-        if verbose:
-            print("VERDICT: INVALID")
-        return VerifyVerdict(verdict=VerifyVerdictKind.INVALID, reason=f"Only reproduced {reproduced_count}/{replay_count}")
+        if reproduced_count >= actual_replays // 2 + 1:
+            if verbose:
+                print("VERDICT: VALID")
+            return VerifyVerdict(verdict=VerifyVerdictKind.VALID, reason=f"Reproduced {reproduced_count}/{actual_replays}")
+        else:
+            if verbose:
+                print("VERDICT: INVALID")
+            return VerifyVerdict(verdict=VerifyVerdictKind.INVALID, reason=f"Only reproduced {reproduced_count}/{actual_replays}")

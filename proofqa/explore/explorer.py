@@ -26,6 +26,7 @@ from proofqa.explore.grounding import ground_action, sanitize_input_value
 from proofqa.explore.inputs import get_field_input
 from proofqa.explore.probes.base import ProbeContext
 from proofqa.explore.probes.boundary import BoundaryProbe
+from proofqa.explore.probes.burst import BurstProbe
 from proofqa.explore.probes.inverse import InversePairProbe
 from proofqa.explore.probes.pairwise import PairwiseProbe
 from proofqa.explore.probes.registry import ProbeRegistry
@@ -112,6 +113,7 @@ class RuleBasedExplorer:
             self.probe_registry.register(ReloadProbe())
             self.probe_registry.register(InversePairProbe())
             self.probe_registry.register(PairwiseProbe())
+            self.probe_registry.register(BurstProbe())
 
         self.graph = StateGraph(self.sqlite_path)
         self.hooks: list[Callable[[StateFingerprint, Action, list[TapeEvent], list[Action]], None]] = []

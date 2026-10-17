@@ -75,13 +75,17 @@ def build_certificate(
     evidence_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. claim.json
-    claim_data = {
+    claim_data: dict[str, Any] = {
         "claim": finding.claim,
         "oracle_class": finding.oracle_class.value,
         "provenance": finding.id,
         "tier": finding.tier.value,
         "confidence": finding.confidence,
     }
+    if finding.observed_rate:
+        claim_data["observed_rate"] = finding.observed_rate
+    elif replay_report and finding.tier.value == "INTERMITTENT":
+        claim_data["observed_rate"] = f"{replay_report.fail_count}/{replay_report.total}"
     (cert_dir / "claim.json").write_text(json.dumps(claim_data, indent=2), encoding="utf-8")
 
     # 2. repro.json

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import Tuple
 
@@ -96,7 +97,12 @@ async def execute(page: Page, action: Action, timeout_ms: int = 5000) -> Tuple[b
 
         # Execute action against element
         if action.kind == ActionKind.CLICK:
-            await element.click(timeout=timeout_ms)
+            burst_count = getattr(action, "burst", 1) or 1
+            if burst_count > 1:
+                tasks = [element.click(timeout=timeout_ms, force=True) for _ in range(burst_count)]
+                await asyncio.gather(*tasks, return_exceptions=True)
+            else:
+                await element.click(timeout=timeout_ms)
             return True, None
         elif action.kind == ActionKind.FILL:
             await element.fill(action.value or "", timeout=timeout_ms)

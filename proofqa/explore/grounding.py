@@ -99,6 +99,7 @@ def ground_action(
             locator=action.locator,
             value=sanitized_val,
             params=action.params,
+            burst=getattr(action, "burst", 1),
         )
 
     # 2. Match interactive actions against grounded controls
@@ -126,4 +127,5 @@ def ground_action(
         locator=matched_control.locator,
         value=sanitized_val,
         params=action.params or matched_control.params,
+        burst=getattr(action, "burst", 1),
     )

@@ -12,7 +12,7 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
-contracts_version: str = "1"
+contracts_version: str = "1.1"
 
 
 # ============================================================================
@@ -49,6 +49,16 @@ class Action(BaseModel):
     locator: Locator | None = None
     value: str | None = None
     params: dict[str, Any] = Field(default_factory=dict)
+    burst: int = 1
+
+    from pydantic import model_serializer
+
+    @model_serializer(mode="wrap")
+    def _serialize(self, handler: Any) -> Any:
+        data = handler(self)
+        if isinstance(data, dict) and data.get("burst") == 1:
+            data.pop("burst", None)
+        return data
 
 
 class StateFingerprint(BaseModel):
@@ -256,6 +266,7 @@ class Finding(BaseModel):
     steps: list[Action] = Field(default_factory=list)
     confidence: float = 1.0
     intent_confirmation_needed: bool = False
+    observed_rate: str | None = None
 
 
 # ============================================================================
@@ -275,6 +286,7 @@ class CertificateManifest(BaseModel):
 class VerifyVerdictKind(str, Enum):
     """Independent certificate verification verdict."""
     VALID = "VALID"
+    VALID_INTERMITTENT = "VALID_INTERMITTENT"
     INVALID = "INVALID"
     TAMPERED = "TAMPERED"
     UNRESOLVED_ENV = "UNRESOLVED_ENV"

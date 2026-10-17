@@ -62,23 +62,34 @@ async def shrink(
     replays_used = 0
     attempt_log: list[dict[str, Any]] = []
 
+    is_intermittent = any(getattr(a, "burst", 1) > 1 for a in trace)
+
     async def evaluate_trace(cand_trace: list[Action]) -> str:
         nonlocal replays_used
         replays_used += 1
+        n_replays = 5 if is_intermittent else 1
         rep = await replay(
             trace=cand_trace,
             world_spec=world_spec,
-            n=1,
+            n=n_replays,
             target_signature=target_signature,
             concurrency=1,
             use_cache=True,
         )
-        if rep.fail_count > 0:
-            return "FAIL"
-        elif rep.unresolved_count > 0:
-            return "UNRESOLVED"
+        if is_intermittent:
+            if rep.fail_count >= 2:
+                return "FAIL"
+            elif rep.unresolved_count > 0:
+                return "UNRESOLVED"
+            else:
+                return "PASS"
         else:
-            return "PASS"
+            if rep.fail_count > 0:
+                return "FAIL"
+            elif rep.unresolved_count > 0:
+                return "UNRESOLVED"
+            else:
+                return "PASS"
 
     # --- Level 1: State drop / No-op filtration ---
     # Remove pure WAIT actions or duplicate consecutive navigation if redundant
@@ -103,6 +114,28 @@ async def shrink(
     # Run async ddmin over the trace actions
     reduced_actions, ddmin_log = await async_ddmin(l1_trace, async_evaluator, budget=budget)
     attempt_log.extend(ddmin_log)
+
+    # Burst size minimization for intermittent actions (Prompt 8: keep smallest burst that still triggers)
+    if is_intermittent and any(getattr(a, "burst", 1) > 1 for a in reduced_actions):
+        minimized_burst_actions: list[Action] = []
+        for a in reduced_actions:
+            current_burst = getattr(a, "burst", 1)
+            if current_burst > 1:
+                best_burst = current_burst
+                for candidate_burst in range(2, current_burst):
+                    test_trace = [
+                        (act.model_copy(update={"burst": candidate_burst}) if act.id == a.id else act)
+                        for act in reduced_actions
+                    ]
+                    status = await evaluate_trace(test_trace)
+                    if status == "FAIL":
+                        best_burst = candidate_burst
+                        break
+                minimized_burst_actions.append(a.model_copy(update={"burst": best_burst}))
+            else:
+                minimized_burst_actions.append(a)
+        reduced_actions = minimized_burst_actions
+
     level2_size = len(reduced_actions)
 
     # --- Level 3: Value Shrinking ---

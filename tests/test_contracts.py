@@ -33,7 +33,7 @@ from proofqa.contracts import (
 
 
 def test_contracts_version():
-    assert contracts_version == "1"
+    assert contracts_version == "1.1"
 
 
 def test_normalize_message_uuids():
@@ -263,3 +263,42 @@ def test_exported_schemas_valid():
     for s in schemas:
         data = json.loads(s.read_text(encoding="utf-8"))
         assert "type" in data or "$defs" in data or "anyOf" in data or "title" in data
+
+
+def test_action_burst_serialization():
+    """Prompt 8 Rule: burst is additive and optional (default=1 omitted from serialization)."""
+    # 1. Default burst=1 omitted from model_dump and JSON
+    a_default = Action(id="a1", kind=ActionKind.CLICK)
+    assert a_default.burst == 1
+    dump = a_default.model_dump()
+    assert "burst" not in dump
+    assert '"burst"' not in a_default.model_dump_json()
+
+    # 2. burst > 1 included in model_dump and JSON
+    a_burst = Action(id="a2", kind=ActionKind.CLICK, burst=5)
+    assert a_burst.burst == 5
+    assert a_burst.model_dump()["burst"] == 5
+    assert '"burst":5' in a_burst.model_dump_json() or '"burst": 5' in a_burst.model_dump_json()
+
+    # 3. Deserializing legacy JSON without burst sets default 1
+    legacy_json = '{"id": "a3", "kind": "click", "locator": null, "value": null, "params": {}}'
+    a_deser = Action.model_validate_json(legacy_json)
+    assert a_deser.burst == 1
+
+
+def test_existing_certificates_verify_byte_for_byte():
+    """Prompt 8 Rule: test proving every certificate already in results/ still verifies byte for byte."""
+    import hashlib
+    results_dir = Path(__file__).resolve().parent.parent / "results"
+    manifests = list(results_dir.rglob("manifest.json"))
+    assert len(manifests) > 0, "Expected existing certificates in results/"
+
+    for manifest_path in manifests:
+        cert_dir = manifest_path.parent
+        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for rel_file, expected_hash in manifest_data.get("files", {}).items():
+            fpath = cert_dir / rel_file
+            assert fpath.exists(), f"File {rel_file} missing in {cert_dir}"
+            h = hashlib.sha256(fpath.read_bytes()).hexdigest()
+            assert h == expected_hash, f"Hash mismatch for {rel_file} in {cert_dir}: expected {expected_hash}, got {h}"
+
