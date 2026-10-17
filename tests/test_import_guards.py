@@ -74,6 +74,7 @@ def test_rule_3_verify_must_not_import_explore_oracles_llm_uncertainty():
         "proofqa.oracles",
         "proofqa.llm",
         "proofqa.uncertainty",
+        "proofqa.spec",
     )
     violations = []
     for mod, lineno in get_all_imported_modules(verify_file):
@@ -84,6 +85,14 @@ def test_rule_3_verify_must_not_import_explore_oracles_llm_uncertainty():
                 )
 
     assert not violations, "Rule 3 violations found:\n" + "\n".join(violations)
+
+
+def test_spec_facts_has_no_llm_imports():
+    """proofqa/spec/facts.py must never import llm or litellm."""
+    facts_file = PROOFQA_DIR / "spec" / "facts.py"
+    assert facts_file.exists()
+    for mod, lineno in get_all_imported_modules(facts_file):
+        assert "llm" not in mod.lower(), f"{facts_file}:{lineno} imports forbidden '{mod}'"
 
 
 def test_reach_and_request_log_isolation():

@@ -1,0 +1,11 @@
+# Operator fixtures for Shop Twin
+accounts:
+  test_user:
+    email: "customer@example.com"
+    password: "Password123!"
+    name: "Customer User"
+    address: "123 Market St, San Francisco, CA"
+
+promo_codes:
+  - "SAVE20"
+  - "WELCOME10"

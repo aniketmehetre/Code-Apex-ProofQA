@@ -1,0 +1,7 @@
+{
+  "claim": "Zero quantity cart addition returns 500 (B01)",
+  "oracle_class": "A",
+  "provenance": "bench_b01_s5",
+  "tier": "VERIFIED",
+  "confidence": 1.0
+}

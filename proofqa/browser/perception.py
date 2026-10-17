@@ -151,16 +151,21 @@ async def extract_candidate_actions(
         aria_label = await inp.get_attribute("aria-label")
         placeholder = await inp.get_attribute("placeholder")
         inp_id_attr = await inp.get_attribute("id")
-        label = aria_label or placeholder or inp_id_attr or "input"
-        act_id = hashlib.sha256(f"fill:{label}:{inp_id_attr}".encode("utf-8")).hexdigest()[:8]
+        inp_name = await inp.get_attribute("name")
+        testid = await inp.get_attribute("data-testid")
+        label = aria_label or placeholder or inp_name or inp_id_attr or "input"
+        act_id = hashlib.sha256(f"fill:{label}:{inp_id_attr}:{testid}".encode("utf-8")).hexdigest()[:8]
 
+        role = "spinbutton" if inp_type == "number" else ("searchbox" if inp_type == "search" else "textbox")
         actions.append(
             Action(
                 id=f"act_fill_{act_id}",
                 kind=ActionKind.FILL,
                 locator=Locator(
-                    role="textbox" if inp_type == "text" else None,
-                    label=aria_label,
+                    role=role,
+                    name=inp_name or aria_label or placeholder,
+                    label=aria_label or placeholder or inp_name,
+                    testid=testid,
                     css_fallback=f"#{inp_id_attr}" if inp_id_attr else None,
                 ),
                 value="test_input",
@@ -172,12 +177,21 @@ async def extract_candidate_actions(
     for sel in selects:
         aria_label = await sel.get_attribute("aria-label")
         sel_id_attr = await sel.get_attribute("id")
-        act_id = hashlib.sha256(f"select:{aria_label}:{sel_id_attr}".encode("utf-8")).hexdigest()[:8]
+        sel_name = await sel.get_attribute("name")
+        testid = await sel.get_attribute("data-testid")
+        label = aria_label or sel_name or sel_id_attr or "select"
+        act_id = hashlib.sha256(f"select:{label}:{sel_id_attr}:{testid}".encode("utf-8")).hexdigest()[:8]
         actions.append(
             Action(
                 id=f"act_select_{act_id}",
                 kind=ActionKind.SELECT,
-                locator=Locator(role="combobox", label=aria_label),
+                locator=Locator(
+                    role="combobox",
+                    name=sel_name or aria_label,
+                    label=aria_label or sel_name,
+                    testid=testid,
+                    css_fallback=f"#{sel_id_attr}" if sel_id_attr else None,
+                ),
                 value="Electronics",
             )
         )

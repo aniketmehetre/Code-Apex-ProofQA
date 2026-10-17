@@ -21,8 +21,22 @@ from proofqa.contracts import (
 class SpecClaimsOracle:
     """Class C Oracle: Extracts verifiable claims with exact quote spans and checks them deterministically."""
 
-    def __init__(self, offline: bool = False) -> None:
+    def __init__(self, offline: bool = False, fact_store: Any = None) -> None:
         self.offline = offline
+        self.fact_store = fact_store
+        self.candidates: list[Finding] = []
+
+    def hook(
+        self,
+        fp: Any,
+        action: Action,
+        events: list[Any],
+        action_prefix: list[Action],
+    ) -> None:
+        """Oracle hook evaluated after every action step."""
+        finding = self.evaluate_transition(self.fact_store, action, events, action_prefix)
+        if finding and not any(c.signature == finding.signature for c in self.candidates):
+            self.candidates.append(finding)
 
     def extract_claims(self, about_text: str) -> list[dict[str, Any]]:
         """Extract claims with quote span from page text.
@@ -104,3 +118,114 @@ class SpecClaimsOracle:
             )
 
         return None
+
+    def evaluate_transition(
+        self,
+        fact_store: Any,
+        action: Action,
+        events: list[Any],
+        action_prefix: list[Action],
+    ) -> Finding | None:
+        """Evaluates a transition against explicit facts in the SpecFactStore.
+
+        FAIL only if:
+        (a) an explicit fact with source evidence exists in fact_store,
+        (b) the filled value violates that fact, and
+        (c) a first-party write in the same transition returned 2xx.
+        """
+        if action.kind != ActionKind.FILL or not action.value or not action.locator:
+            return None
+
+        if not fact_store:
+            return None
+
+        # Look for 2xx first-party write in events
+        write_response = None
+        for ev in events:
+            ev_type = getattr(ev, "type", None) or getattr(ev, "kind", None)
+            if ev_type == "network":
+                st = getattr(ev, "status", 0)
+                method = (getattr(ev, "method", "") or "GET").upper()
+                url = getattr(ev, "url", "")
+                if method in ("POST", "PUT", "PATCH", "DELETE") and 200 <= st < 300:
+                    write_response = {"status": st, "method": method, "url": url}
+                    break
+            elif ev_type == "network_response":
+                payload = getattr(ev, "payload", {}) or (ev if isinstance(ev, dict) else {})
+                st = payload.get("status", 0)
+                method = (payload.get("method") or "GET").upper()
+                if method in ("POST", "PUT", "PATCH", "DELETE") and 200 <= st < 300:
+                    write_response = payload
+                    break
+
+        if not write_response:
+            return None
+
+        loc_text = " ".join(filter(None, [action.locator.name, action.locator.label, action.locator.testid])).lower()
+        subject = None
+        for kw in ["password", "quantity", "email", "address", "phone"]:
+            if kw in loc_text:
+                subject = kw
+                break
+
+        if not subject:
+            return None
+
+        facts = fact_store.get_facts(subject)
+        if not facts:
+            return None
+
+        violated_fact = None
+        val_str = action.value
+        for fact in facts:
+            if fact.kind == "min_len":
+                if len(val_str) < int(fact.value):
+                    violated_fact = fact
+                    break
+            elif fact.kind == "max_len":
+                if len(val_str) > int(fact.value):
+                    violated_fact = fact
+                    break
+            elif fact.kind == "min":
+                try:
+                    if float(val_str) < float(fact.value):
+                        violated_fact = fact
+                        break
+                except ValueError:
+                    pass
+            elif fact.kind == "max":
+                try:
+                    if float(val_str) > float(fact.value):
+                        violated_fact = fact
+                        break
+                except ValueError:
+                    pass
+
+        if not violated_fact:
+            return None
+
+        ep = write_response.get("url", "").split("?")[0]
+        ep_path = "/" + ep.split("/", 3)[-1] if "://" in ep else ep
+        st = write_response.get("status", 200)
+
+        sig = FailureSignature(
+            kind="spec_claim_violation",
+            first_party_endpoint=ep_path,
+            status=st,
+            error_type="SpecClaimViolation",
+            message_norm=normalize_message(
+                f"SpecClaimViolation: {subject} value '{val_str}' violates {violated_fact.kind}={violated_fact.value} on {violated_fact.page} citing: '{violated_fact.evidence_text}'"
+            ),
+        )
+        fid = f"finding_C_{hashlib.sha256(sig.message_norm.encode()).hexdigest()[:8]}"
+        return Finding(
+            id=fid,
+            oracle_class=OracleClass.C,
+            tier=Tier.VERIFIED_VIOLATION,
+            signature=sig,
+            claim=f"Server returned {st} accepting {subject} value '{val_str}' contrary to spec fact: '{violated_fact.evidence_text}' on {violated_fact.page}",
+            steps=action_prefix + [action],
+            confidence=1.0,
+            intent_confirmation_needed=True,
+        )
+

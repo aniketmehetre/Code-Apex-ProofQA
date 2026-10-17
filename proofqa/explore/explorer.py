@@ -18,12 +18,16 @@ from proofqa.contracts import (
     StateFingerprint,
     TapeEvent,
 )
+from proofqa.explore.auth import AuthBootstrap
 from proofqa.explore.config import ExplorerConfig, ExplorerLevel
 from proofqa.explore.grounding import ground_action, sanitize_input_value
 from proofqa.explore.inputs import get_field_input
 from proofqa.explore.probes.base import ProbeContext
+from proofqa.explore.probes.boundary import BoundaryProbe
 from proofqa.explore.probes.registry import ProbeRegistry
 from proofqa.explore.state_graph import StateGraph
+from proofqa.explore.tokens import TokenPool
+from proofqa.spec.facts import SpecFactStore
 from proofqa.tape.recorder import TapeRecorder
 from proofqa.world.manager import World
 
@@ -76,6 +80,8 @@ class RuleBasedExplorer:
 
         if config is not None:
             self.config = config
+            if level != "rules":
+                self.config.level = level
         else:
             self.config = ExplorerConfig(
                 level=level,
@@ -88,7 +94,13 @@ class RuleBasedExplorer:
         self.budget_depth = self.config.budget_depth
         self.budget_time_seconds = self.config.budget_time_seconds
         self.level = self.config.level
+        self.spec_facts = SpecFactStore()
+        fixtures_file = Path("fixtures/shop.yaml")
+        self.token_pool = TokenPool(fixtures_path=fixtures_file if fixtures_file.exists() else None)
+
         self.probe_registry = probe_registry or ProbeRegistry(per_probe_budget=self.config.per_probe_budget)
+        if self.level in ("rules_probes", "rules_probes_goexplore", "full"):
+            self.probe_registry.register(BoundaryProbe())
 
         self.graph = StateGraph(self.sqlite_path)
         self.hooks: list[Callable[[StateFingerprint, Action, list[TapeEvent], list[Action]], None]] = []
@@ -128,7 +140,16 @@ class RuleBasedExplorer:
             fp = await get_page_fingerprint(page)
             recorder.record_state(fp)
 
+            try:
+                page_text = await page.inner_text("body")
+            except Exception:
+                page_text = ""
+            if page_text:
+                self.spec_facts.extract_from_page_copy(page_text, page=fp.url_path)
+                self.token_pool.harvest_from_text(page_text)
+
             candidates = await extract_candidate_actions(page, origin=self.world.url)
+            self.token_pool.harvest_from_placeholders(candidates)
             current_state_id = self.graph.add_state(fp, candidates, depth=0)
 
             probe_queue: list[Action] = []
@@ -203,23 +224,40 @@ class RuleBasedExplorer:
                             if not untried_actions:
                                 break
 
+                        selected_action = None
+
                         # Check if active probes apply at this state (rules_probes, rules_probes_goexplore, full)
-                        if self.level in ("rules_probes", "rules_probes_goexplore", "full") and self.probe_registry.probes:
-                            ctx = ProbeContext(
-                                grounded_controls=candidates,
-                                semantic_state_key=f"{fp.url_path}:{fp.aria_hash or fp.simhash}",
-                                budget_left=self.budget_steps - steps,
-                                rng=rng,
-                            )
-                            probe_acts = self.probe_registry.run_applicable_probes(
-                                ctx,
-                                max_probes_per_page=self.config.per_page_probe_cap,
-                            )
-                            if probe_acts:
-                                selected_action = probe_acts[0]
-                                probe_queue.extend(probe_acts[1:])
-                            else:
-                                selected_action = None
+                        if self.level in ("rules_probes", "rules_probes_goexplore", "full"):
+                            # Check AuthBootstrap
+                            if AuthBootstrap.is_auth_wall(fp.url_path, recorder.events[-5:], candidates):
+                                auth_acts = AuthBootstrap.plan_login_or_register(
+                                    candidates,
+                                    fixtures=self.token_pool.fixtures,
+                                    seed=self.seed,
+                                )
+                                if auth_acts:
+                                    selected_action = auth_acts[0]
+                                    probe_queue.extend(auth_acts[1:])
+
+                            if selected_action is None and self.probe_registry.probes:
+                                ctx = ProbeContext(
+                                    grounded_controls=candidates,
+                                    semantic_state_key=f"{fp.url_path}:{fp.aria_hash or fp.simhash}",
+                                    spec_facts=self.spec_facts,
+                                    token_pool=self.token_pool.get_tokens(),
+                                    fixtures=self.token_pool.fixtures,
+                                    budget_left=self.budget_steps - steps,
+                                    rng=rng,
+                                )
+                                probe_acts = self.probe_registry.run_applicable_probes(
+                                    ctx,
+                                    max_probes_per_page=self.config.per_page_probe_cap,
+                                )
+                                if probe_acts:
+                                    selected_action = probe_acts[0]
+                                    probe_queue.extend(probe_acts[1:])
+                                else:
+                                    selected_action = None
                         else:
                             selected_action = None
 
@@ -280,6 +318,15 @@ class RuleBasedExplorer:
                 new_fp = await get_page_fingerprint(page)
                 recorder.record_state(new_fp)
                 new_candidates = await extract_candidate_actions(page, origin=self.world.url)
+
+                try:
+                    new_text = await page.inner_text("body")
+                except Exception:
+                    new_text = ""
+                if new_text:
+                    self.spec_facts.extract_from_page_copy(new_text, page=new_fp.url_path)
+                    self.token_pool.harvest_from_text(new_text)
+                self.token_pool.harvest_from_placeholders(new_candidates)
 
                 new_state_id = self.graph.add_state(new_fp, new_candidates, depth=current_depth + 1)
                 self.graph.record_transition(current_state_id, selected_action, new_state_id, step=steps)

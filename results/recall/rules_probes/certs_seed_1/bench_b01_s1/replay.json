@@ -1,0 +1,49 @@
+{
+  "total": 1,
+  "fail_count": 1,
+  "pass_count": 0,
+  "unresolved_count": 0,
+  "reproduced": true,
+  "reproduction_rate": 1.0,
+  "evidence_refs": [
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmp3lqvawk8\\screenshots\\failure.png"
+  ],
+  "runs": [
+    {
+      "outcome": "FAIL",
+      "reason": "Target signature observed",
+      "reproduced": true,
+      "signature": {
+        "kind": "http_5xx",
+        "first_party_endpoint": "/api/cart",
+        "status": 500,
+        "error_type": null,
+        "message_norm": "HTTP <NUM> on /api/cart",
+        "top_frame": null
+      },
+      "wall_time_ms": 4422.596216201782,
+      "attempt_log": [
+        {
+          "step": 0,
+          "action_id": "s0",
+          "status": "ok"
+        },
+        {
+          "step": 1,
+          "action_id": "s1",
+          "status": "ok"
+        },
+        {
+          "step": 2,
+          "action_id": "s2",
+          "status": "ok"
+        },
+        {
+          "step": 3,
+          "action_id": "s3",
+          "status": "ok"
+        }
+      ]
+    }
+  ]
+}

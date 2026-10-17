@@ -122,24 +122,33 @@ async def log_requests_middleware(request: Request, call_next):
         except Exception:
             pass
 
-    response = await call_next(request)
-
-    if req_log_path:
-        try:
-            log_entry = {
-                "timestamp": time.time(),
-                "method": request.method,
-                "path": request.url.path,
-                "query": dict(request.query_params),
-                "status": response.status_code,
-                "body": body_data,
-            }
-            with open(req_log_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(log_entry) + "\n")
-        except Exception:
-            pass
-
-    return response
+    response = None
+    status_code = 500
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    except HTTPException as he:
+        status_code = he.status_code
+        raise
+    except Exception:
+        status_code = 500
+        raise
+    finally:
+        if req_log_path:
+            try:
+                log_entry = {
+                    "timestamp": time.time(),
+                    "method": request.method,
+                    "path": request.url.path,
+                    "query": dict(request.query_params),
+                    "status": status_code,
+                    "body": body_data,
+                }
+                with open(req_log_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(log_entry) + "\n")
+            except Exception:
+                pass
 
 
 def get_or_create_session_id(request: Request, response: Response, db: Session) -> str:

@@ -23,6 +23,7 @@ from proofqa.contracts import (
 )
 from proofqa.explore.explorer import RuleBasedExplorer
 from proofqa.oracles.hard_signals import HardSignalsOracle
+from proofqa.oracles.spec_claims import SpecClaimsOracle
 from proofqa.proof.replay import replay
 from proofqa.proof.shrink import shrink
 from proofqa.uncertainty import assign_tier, compute_confidence, deduplicate_findings
@@ -117,10 +118,12 @@ class Pipeline:
                 config=self.explorer_config,
             )
             explorer.add_oracle_hook(hard_signals.hook)
+            spec_claims = SpecClaimsOracle(offline=True, fact_store=explorer.spec_facts)
+            explorer.add_oracle_hook(spec_claims.hook)
 
             await self.event_bus.emit("stage_explore_started", {"budget": step_budget})
             explore_result = await explorer.explore()
-            discovered = list(hard_signals.candidates)
+            discovered = list(hard_signals.candidates) + list(spec_claims.candidates)
             candidates = list(initial_candidates or []) + discovered
 
             self.last_request_log = list(world.request_log)

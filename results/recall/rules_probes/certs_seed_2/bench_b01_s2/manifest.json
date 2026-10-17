@@ -1,0 +1,16 @@
+{
+  "certificate_id": "bench_b01_s2",
+  "finding_id": "bench_b01_s2",
+  "created_at": "2026-10-17T09:47:13.916065+00:00",
+  "contracts_version": "1",
+  "files": {
+    "claim.json": "96debff6a393dfc9e991bdcb31a8b3f5a9e16643578f8e66d683ccc65faa9a6e",
+    "evidence/console.log": "be22c2131766b46cde1607910534920c46c6e62e9d496a8271c2c9ce0009f304",
+    "limits.md": "418115f000177ef256fe5f8aecc53bc0c7b4c26abb1d17e91c425df091dbc734",
+    "replay.json": "54bc1795cf8156235d9ef422517d9d055f19837b0fab9578f0b64d198eb6a984",
+    "repro.json": "6d794d1623f4db71de90dcdd9bc12a8057293ee9b6e96f6533ce620ac4bb4b7e",
+    "signature.json": "c06d14667a6cd1725590fa797df4ae9a7149bd0c31c1fcc509c29b32e214f61a",
+    "world.json": "971c25e4e3492864ff5f9756b379931b762c5d4c0edc3374aaa07764bba8172a"
+  },
+  "manifest_hash": "5edca9c248cd951d08467ad75639d078b69964f42e83a622bef537192e2bc1b2"
+}
