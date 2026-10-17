@@ -112,8 +112,10 @@ def assign_tier(
     rate = breakdown.reproduction_rate
 
     # Intermittent bug (e.g. B09 add-to-cart failure rate ~33%)
-    if 0.0 < rate < 1.0:
-        return Tier.INTERMITTENT, False, None
+    if 0.0 < rate < 1.0 or finding.tier == Tier.INTERMITTENT or any(getattr(a, "burst", 1) > 1 for a in finding.steps):
+        if successes >= 2:
+            return Tier.INTERMITTENT, False, None
+        return Tier.INSUFFICIENT_EVIDENCE, False, "Intermittent failure did not meet 2-of-5 threshold"
 
     # Classes B, C, D, E require human intent confirmation
     if finding.oracle_class in (OracleClass.B, OracleClass.C, OracleClass.D, OracleClass.E):
@@ -137,13 +139,16 @@ def deduplicate_findings(findings: list[Finding]) -> list[Finding]:
             sig.status,
             sig.error_type,
             sig.message_norm,
+            f.tier,
         )
         if key not in seen:
             seen[key] = f
         else:
-            # Preserve higher confidence or shorter steps
+            # Preserve higher confidence or shorter steps, preferring burst actions
             existing = seen[key]
-            if len(f.steps) < len(existing.steps) or f.confidence > existing.confidence:
+            f_burst = any(getattr(a, "burst", 1) > 1 for a in f.steps)
+            ex_burst = any(getattr(a, "burst", 1) > 1 for a in existing.steps)
+            if (f_burst and not ex_burst) or (f.confidence > existing.confidence) or (len(f.steps) < len(existing.steps) and not ex_burst):
                 seen[key] = f
 
     return list(seen.values())

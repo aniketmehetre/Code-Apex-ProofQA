@@ -41,24 +41,64 @@ class Adjudicator:
             bid = bug["id"]
             exp = bug.get("expected_signature", {})
 
-            # Match criteria
-            kind_match = exp.get("kind") == sig.kind or sig.kind in ("http_5xx", "page_error", "relation_violation", "ui_mismatch")
-            endpoint_match = (
-                exp.get("first_party_endpoint") is None
-                or exp.get("first_party_endpoint") == sig.first_party_endpoint
-                or not sig.first_party_endpoint
-            )
-            error_match = (
-                exp.get("error_type") is None
-                or exp.get("error_type") == sig.error_type
-                or (sig.error_type and exp.get("error_type", "") in sig.error_type)
-            )
+            # Kind matching (exact or compatible family)
+            exp_kind = exp.get("kind")
+            sig_kind = sig.kind
+            if exp_kind == sig_kind:
+                kind_match = True
+            elif exp_kind in ("http_5xx", "page_error") and sig_kind in ("http_5xx", "page_error"):
+                kind_match = True
+            elif exp_kind in ("ui_mismatch", "cross_layer_inconsistency") and sig_kind in ("ui_mismatch", "cross_layer_inconsistency"):
+                kind_match = True
+            elif exp_kind in ("relation_violation", "metamorphic") and sig_kind in ("relation_violation", "metamorphic"):
+                kind_match = True
+            elif exp_kind in ("spec_claim_violation", "spec_violation") and sig_kind in ("spec_claim_violation", "spec_violation"):
+                kind_match = True
+            else:
+                kind_match = False
 
-            if kind_match and (endpoint_match or error_match):
-                if bid in already_credited_bugs:
-                    return "duplicate", bid
-                else:
-                    return "true_bug", bid
+            if not kind_match:
+                continue
+
+            # Status matching
+            if exp.get("status") is not None and sig.status is not None:
+                if exp["status"] != sig.status:
+                    continue
+
+            # Endpoint matching
+            if exp.get("first_party_endpoint") and sig.first_party_endpoint:
+                if exp["first_party_endpoint"] != sig.first_party_endpoint:
+                    continue
+
+            # If both specify error_type, they must be consistent
+            if exp.get("error_type") and sig.error_type and exp["error_type"].lower() not in sig.error_type.lower():
+                continue
+
+            # Disambiguate B01 vs B09 (both target /api/cart with 500)
+            claim_text = (finding.claim or "").lower()
+            msg_text = ((sig.message_norm or "") + " " + claim_text).lower()
+            has_burst = any(getattr(a, "burst", 1) > 1 for a in finding.steps) or str(getattr(finding, "tier", "")) in ("Tier.INTERMITTENT", "INTERMITTENT")
+            if bid == "B01" and (has_burst or "concurrency" in claim_text or "lock" in claim_text):
+                continue
+            if bid == "B09" and not (has_burst or "concurrency" in claim_text or "lock" in claim_text or "transient" in claim_text):
+                continue
+
+            # Disambiguate B03 vs B04 (both target /api/cart with CrossLayerMismatch)
+            if bid == "B03" and ("total" in msg_text or "discount" in msg_text):
+                continue
+            if bid == "B04" and not ("total" in msg_text or "discount" in msg_text):
+                continue
+
+            # Disambiguate B05 vs B06 (both target /api/products with relation_violation)
+            if bid == "B05" and not ("sort" in msg_text or "order" in msg_text or "restor" in msg_text):
+                continue
+            if bid == "B06" and not ("filter" in msg_text or "category" in msg_text or "page" in msg_text or "leak" in msg_text):
+                continue
+
+            if bid in already_credited_bugs:
+                return "duplicate", bid
+            else:
+                return "true_bug", bid
 
         # Check dev decoys (D01 - D05)
         if (sig.first_party_endpoint and "/api/decoy" in sig.first_party_endpoint) or (

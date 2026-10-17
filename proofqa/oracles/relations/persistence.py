@@ -80,6 +80,7 @@ class AddressPersistenceRelation(Relation):
         if fetched != test_address:
             sig = FailureSignature(
                 kind="relation_violation",
+                first_party_endpoint="/api/account/address",
                 error_type="AddressPersistenceViolation",
                 message_norm=normalize_message(
                     f"AddressPersistenceViolation: Expected '{test_address}' after reload, found '{fetched}'"

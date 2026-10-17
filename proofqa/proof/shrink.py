@@ -122,7 +122,7 @@ async def shrink(
             current_burst = getattr(a, "burst", 1)
             if current_burst > 1:
                 best_burst = current_burst
-                for candidate_burst in range(2, current_burst):
+                for candidate_burst in range(4, current_burst):
                     test_trace = [
                         (act.model_copy(update={"burst": candidate_burst}) if act.id == a.id else act)
                         for act in reduced_actions

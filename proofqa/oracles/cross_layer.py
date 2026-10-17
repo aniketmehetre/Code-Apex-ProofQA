@@ -90,8 +90,13 @@ class CrossLayerOracle:
         results: list[tuple[UiFactEvent, Finding | None]] = []
 
         # Check 1: Cart Badge Count vs API cart item_count / items length
-        if "cart_badge_count" in ui_facts and "/api/cart" in api_responses:
-            cart_data = api_responses["/api/cart"]
+        cart_data = None
+        for k in reversed(list(api_responses.keys())):
+            if k.startswith("/api/cart"):
+                cart_data = api_responses[k]
+                break
+
+        if "cart_badge_count" in ui_facts and cart_data is not None:
             api_count = cart_data.get("item_count")
             if api_count is None and "items" in cart_data:
                 api_count = sum(it.get("quantity", 1) for it in cart_data["items"])
@@ -134,41 +139,43 @@ class CrossLayerOracle:
                 results.append((event, finding))
 
         # Check 2: Cart Total vs API cart total (B04 detection)
-        if "cart_total" in ui_facts and "/api/cart" in api_responses:
-            cart_data = api_responses["/api/cart"]
-            api_total = cart_data.get("total")
-            if api_total is not None:
-                ui_val = ui_facts["cart_total"]
-                mismatch = abs(ui_val - float(api_total)) > self.tolerance
+        if "cart_total" in ui_facts and cart_data is not None:
+            subtotal = float(cart_data.get("subtotal", 0.0))
+            discount = float(cart_data.get("discount", 0.0))
+            expected_total = round(max(0.0, subtotal - discount), 2)
+            api_total = float(cart_data.get("total", subtotal))
+            ui_val = ui_facts["cart_total"]
 
-                if mismatch:
-                    await asyncio.sleep(self.settle_delay_seconds)
-                    recheck_facts = await self.extract_ui_facts(page)
-                    ui_val = recheck_facts.get("cart_total", ui_val)
-                    mismatch = abs(ui_val - float(api_total)) > self.tolerance
+            mismatch = (abs(ui_val - expected_total) > self.tolerance and discount > 0) or (abs(ui_val - api_total) > self.tolerance)
 
-                event = UiFactEvent(
-                    label="cart_total",
-                    ui_value=ui_val,
-                    api_value=api_total,
-                    api_ref="/api/cart",
-                    timestamp_ms=time.time() * 1000,
+            if mismatch:
+                await asyncio.sleep(self.settle_delay_seconds)
+                recheck_facts = await self.extract_ui_facts(page)
+                ui_val = recheck_facts.get("cart_total", ui_val)
+                mismatch = (abs(ui_val - expected_total) > self.tolerance and discount > 0) or (abs(ui_val - api_total) > self.tolerance)
+
+            event = UiFactEvent(
+                label="cart_total",
+                ui_value=ui_val,
+                api_value=expected_total if discount > 0 else api_total,
+                api_ref="/api/cart",
+                timestamp_ms=time.time() * 1000,
+            )
+
+            finding = None
+            if mismatch:
+                sig = FailureSignature(
+                    kind="ui_mismatch",
+                    first_party_endpoint="/api/cart",
+                    error_type="CrossLayerMismatch",
+                    message_norm=normalize_message(
+                        f"CrossLayerMismatch: cart_total UI displays ${ui_val:.2f} but truth total is ${expected_total:.2f}"
+                    ),
                 )
-
-                finding = None
-                if mismatch:
-                    sig = FailureSignature(
-                        kind="ui_mismatch",
-                        first_party_endpoint="/api/cart",
-                        error_type="CrossLayerMismatch",
-                        message_norm=normalize_message(
-                            f"CrossLayerMismatch: cart_total UI displays ${ui_val:.2f} but API total is ${float(api_total):.2f}"
-                        ),
-                    )
-                    finding = self._create_finding(
-                        sig,
-                        f"Cart displayed total (${ui_val:.2f}) diverges from API ground truth (${float(api_total):.2f})",
-                        action_prefix,
+                finding = self._create_finding(
+                    sig,
+                    f"Cart displayed total (${ui_val:.2f}) ignores discount (truth: ${expected_total:.2f})",
+                    action_prefix,
                     )
 
                 results.append((event, finding))

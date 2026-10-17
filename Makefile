@@ -1,4 +1,4 @@
-.PHONY: setup lint test twin bench demo validate-menu clean
+.PHONY: setup lint test twin bench demo demo-blind validate-menu clean
 
 ifeq ($(OS),Windows_NT)
     VENV_DIR = .venv
@@ -27,6 +27,9 @@ bench:
 
 demo:
 	$(PYTHON) demo/demo_runner.py
+
+demo-blind:
+	$(PYTHON) demo/demo_blind.py
 
 validate-menu:
 	$(PYTHON) demo/validate_menu.py

@@ -9,6 +9,7 @@ if "%1"=="test" goto test
 if "%1"=="twin" goto twin
 if "%1"=="bench" goto bench
 if "%1"=="demo" goto demo
+if "%1"=="demo-blind" goto demo_blind
 if "%1"=="validate-menu" goto validate_menu
 if "%1"=="" goto test
 
@@ -40,6 +41,11 @@ exit /b %ERRORLEVEL%
 
 :demo
 %PYTHON% demo\demo_runner.py
+exit /b %ERRORLEVEL%
+
+:demo_blind
+shift
+%PYTHON% demo\demo_blind.py %1 %2 %3
 exit /b %ERRORLEVEL%
 
 :validate_menu

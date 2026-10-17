@@ -159,6 +159,9 @@ class RuleBasedExplorer:
             self.recorder = recorder
 
             # 1. Initialize root state at "/"
+            init_goto = Action(id="init_goto", kind=ActionKind.GOTO, value="/")
+            self.action_history.append(init_goto)
+            recorder.record_action(init_goto, duration_ms=0)
             try:
                 await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="networkidle", timeout=10000)
             except Exception:

@@ -122,7 +122,10 @@ class FormPlan:
         subj = self.get_field_subject(target_field)
         variants: list[str] = []
 
-        if subj == "quantity":
+        if subj == "search":
+            variants = ["'", '"', "%", "\\", "0", ""]
+
+        elif subj == "quantity":
             min_val = 1
             max_val = 99
             if fact_store:

@@ -27,7 +27,14 @@ def compute_metrics(
     shrink_steps_before = 0
     shrink_steps_after = 0
 
+    # Track trial-level true positives and timing
+    trial_tp_count = 0
+    bug_seed_counts: dict[str, int] = {}
+    actions_to_first_cert: list[int] = []
+    seconds_to_first_cert: list[float] = []
+
     for r in runs:
+        run_found_bugs: set[str] = set()
         outcomes = r.get("adjudicated_outcomes", [])
         for item in outcomes:
             status = item.get("status")
@@ -35,6 +42,7 @@ def compute_metrics(
             total_findings += 1
             if status == "true_bug" and bid:
                 true_bugs_found.add(bid)
+                run_found_bugs.add(bid)
             elif status == "decoy_hit":
                 decoy_hits += 1
                 if bid in ("D06", "D07", "D08", "D09", "D10"):
@@ -44,10 +52,22 @@ def compute_metrics(
             elif status == "false_positive":
                 false_positives += 1
 
+        trial_tp_count += len(run_found_bugs)
+        for b in run_found_bugs:
+            bug_seed_counts[b] = bug_seed_counts.get(b, 0) + 1
+
+        # Track first cert actions / timing
+        first_act = r.get("first_cert_action")
+        first_sec = r.get("first_cert_seconds")
+        if first_act is not None:
+            actions_to_first_cert.append(first_act)
+        if first_sec is not None:
+            seconds_to_first_cert.append(first_sec)
+
         certs = r.get("certificates", [])
         for c in certs:
             total_certificates += 1
-            if c.get("verdict") == "VALID":
+            if c.get("verdict") in ("VALID", "VALID_INTERMITTENT"):
                 valid_certificates += 1
 
         reproduction_attempts += r.get("replays_total", 0)
@@ -56,13 +76,28 @@ def compute_metrics(
         shrink_steps_before += r.get("shrink_orig_steps", 0)
         shrink_steps_after += r.get("shrink_reduced_steps", 0)
 
-    # Precision & Recall
+    # Precision & Bug Recall
     tp = len(true_bugs_found)
     precision = tp / max(1, (tp + false_positives + decoy_hits))
-    recall = tp / max(1, total_ground_truth_bugs)
+    bug_recall = tp / max(1, total_ground_truth_bugs)
 
     prec_lower, prec_upper = wilson_score_interval(tp, max(1, tp + false_positives + decoy_hits))
     rec_lower, rec_upper = wilson_score_interval(tp, total_ground_truth_bugs)
+
+    # Trial-level recall (bug x seed) with Wilson 95% CI
+    n_runs = max(1, len(runs))
+    total_trials = n_runs * total_ground_truth_bugs
+    trial_recall = trial_tp_count / max(1, total_trials)
+    tr_lower, tr_upper = wilson_score_interval(trial_tp_count, max(1, total_trials))
+
+    # Bug-level recall at 50% seed threshold
+    bugs_at_50pct = sum(1 for bid, cnt in bug_seed_counts.items() if cnt >= (n_runs * 0.5))
+    bug_recall_50pct = bugs_at_50pct / max(1, total_ground_truth_bugs)
+
+    # Median actions and seconds to first certificate
+    import statistics
+    median_actions = float(statistics.median(actions_to_first_cert)) if actions_to_first_cert else 0.0
+    median_seconds = float(statistics.median(seconds_to_first_cert)) if seconds_to_first_cert else 0.0
 
     cert_validity_rate = (valid_certificates / total_certificates) if total_certificates > 0 else 1.0
     cv_lower, cv_upper = wilson_score_interval(valid_certificates, max(1, total_certificates))
@@ -74,8 +109,13 @@ def compute_metrics(
         "total_ground_truth": total_ground_truth_bugs,
         "precision": round(precision, 4),
         "precision_ci": [round(prec_lower, 4), round(prec_upper, 4)],
-        "recall": round(recall, 4),
+        "recall": round(bug_recall, 4),
         "recall_ci": [round(rec_lower, 4), round(rec_upper, 4)],
+        "trial_recall": round(trial_recall, 4),
+        "trial_recall_ci": [round(tr_lower, 4), round(tr_upper, 4)],
+        "bug_recall_50pct": round(bug_recall_50pct, 4),
+        "median_actions_to_first_cert": round(median_actions, 1),
+        "median_seconds_to_first_cert": round(median_seconds, 2),
         "certificate_validity_rate": round(cert_validity_rate, 4),
         "certificate_validity_ci": [round(cv_lower, 4), round(cv_upper, 4)],
         "decoy_false_positive_rate": 0.0 if decoy_hits == 0 else round(decoy_hits / max(1, total_findings), 4),

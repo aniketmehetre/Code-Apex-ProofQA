@@ -107,50 +107,57 @@ class Pipeline:
         self.last_request_log = []
 
         # 1. Start world and explore
-        world = World(self.world_spec)
-        with world:
-            hard_signals = HardSignalsOracle(world_origin=world.url)
-
-            explorer = RuleBasedExplorer(
-                world=world,
-                budget_steps=step_budget,
-                seed=self.world_spec.seed,
-                output_dir=self.output_dir / "explore",
-                level=self.level,
-                config=self.explorer_config,
-            )
-            explorer.add_oracle_hook(hard_signals.hook)
-            spec_claims = SpecClaimsOracle(offline=True, fact_store=explorer.spec_facts)
-            explorer.add_oracle_hook(spec_claims.hook)
-            metamorphic = MetamorphicOracle()
-            explorer.add_oracle_hook(metamorphic.hook)
-
-            cross_layer = CrossLayerOracle()
-
-            async def cross_layer_hook(page: Any, fp: Any, action: Any, events: Any, history: Any, api_responses: Any) -> None:
-                cl_results = await cross_layer.verify_consistency(page, api_responses, history)
-                if explorer.recorder:
-                    for ev, _ in cl_results:
-                        if ev:
-                            explorer.recorder.record_ui_fact(ev.label, ev.ui_value, ev.api_value, ev.api_ref)
-
-            explorer.add_async_oracle_hook(cross_layer_hook)
-
-            await self.event_bus.emit("stage_explore_started", {"budget": step_budget})
-            explore_result = await explorer.explore()
-            discovered = (
-                list(hard_signals.candidates)
-                + list(spec_claims.candidates)
-                + list(cross_layer.candidates)
-                + list(metamorphic.candidates)
-            )
-            candidates = list(initial_candidates or []) + discovered
-
-            self.last_request_log = list(world.request_log)
+        if initial_candidates and step_budget == 0:
+            candidates = list(initial_candidates)
             await self.event_bus.emit(
                 "stage_explore_completed",
-                {"candidates_found": len(candidates), "steps": explore_result.steps_executed},
+                {"candidates_found": len(candidates), "steps": 0},
             )
+        else:
+            world = World(self.world_spec)
+            with world:
+                hard_signals = HardSignalsOracle(world_origin=world.url)
+
+                explorer = RuleBasedExplorer(
+                    world=world,
+                    budget_steps=step_budget,
+                    seed=self.world_spec.seed,
+                    output_dir=self.output_dir / "explore",
+                    level=self.level,
+                    config=self.explorer_config,
+                )
+                explorer.add_oracle_hook(hard_signals.hook)
+                spec_claims = SpecClaimsOracle(offline=True, fact_store=explorer.spec_facts)
+                explorer.add_oracle_hook(spec_claims.hook)
+                metamorphic = MetamorphicOracle()
+                explorer.add_oracle_hook(metamorphic.hook)
+
+                cross_layer = CrossLayerOracle()
+
+                async def cross_layer_hook(page: Any, fp: Any, action: Any, events: Any, history: Any, api_responses: Any) -> None:
+                    cl_results = await cross_layer.verify_consistency(page, api_responses, history)
+                    if explorer.recorder:
+                        for ev, _ in cl_results:
+                            if ev:
+                                explorer.recorder.record_ui_fact(ev.label, ev.ui_value, ev.api_value, ev.api_ref)
+
+                explorer.add_async_oracle_hook(cross_layer_hook)
+
+                await self.event_bus.emit("stage_explore_started", {"budget": step_budget})
+                explore_result = await explorer.explore()
+                discovered = (
+                    list(hard_signals.candidates)
+                    + list(spec_claims.candidates)
+                    + list(cross_layer.candidates)
+                    + list(metamorphic.candidates)
+                )
+                candidates = list(initial_candidates or []) + discovered
+
+                self.last_request_log = list(world.request_log)
+                await self.event_bus.emit(
+                    "stage_explore_completed",
+                    {"candidates_found": len(candidates), "steps": explore_result.steps_executed},
+                )
 
         # Deduplicate candidate findings before replay
         candidates = deduplicate_findings(candidates)
@@ -160,11 +167,16 @@ class Pipeline:
         for cand in candidates:
             await self.event_bus.emit("candidate_evaluation_started", {"finding_id": cand.id})
 
-            # Check replay reproduction (k of k)
+            # Check replay reproduction (k of k for deterministic, 5 for intermittent)
+            is_intermittent = (
+                cand.tier == Tier.INTERMITTENT
+                or any(getattr(a, "burst", 1) > 1 for a in cand.steps)
+            )
+            actual_replays = max(k_replays, 5) if is_intermittent else k_replays
             rep_report = await replay(
                 trace=cand.steps,
                 world_spec=self.world_spec,
-                n=k_replays,
+                n=actual_replays,
                 target_signature=cand.signature,
                 concurrency=1,
             )
@@ -173,12 +185,12 @@ class Pipeline:
             breakdown = compute_confidence(
                 finding=cand,
                 successes=rep_report.fail_count,
-                total_replays=k_replays,
+                total_replays=actual_replays,
             )
             assigned_tier, intent_needed, next_exp = assign_tier(
                 finding=cand,
                 successes=rep_report.fail_count,
-                total_replays=k_replays,
+                total_replays=actual_replays,
                 breakdown=breakdown,
             )
 

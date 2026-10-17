@@ -68,18 +68,31 @@ class MetamorphicOracle:
             status = getattr(ev, "status", 200)
 
             # Extract body if available
-            body_dict: dict[str, Any] | None = None
-            blob_ref = getattr(ev, "response_blob_ref", None)
-            if blob_ref:
-                try:
-                    from pathlib import Path
-                    blob_path = Path("results/explore/blobs") / blob_ref
-                    if not blob_path.exists():
-                        blob_path = Path(blob_ref)
-                    if blob_path.exists():
-                        body_dict = json.loads(blob_path.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
+            body_dict: dict[str, Any] | None = getattr(ev, "body_json", None)
+            if not body_dict:
+                blob_ref = getattr(ev, "response_blob_ref", None)
+                if blob_ref:
+                    from proofqa.tape.recorder import GLOBAL_BLOB_CACHE
+                    body_dict = GLOBAL_BLOB_CACHE.get(blob_ref)
+                    if not body_dict:
+                        try:
+                            import glob
+                            from pathlib import Path
+                            candidates = [
+                                Path("results/explore/blobs") / blob_ref,
+                                Path("results/blobs") / blob_ref,
+                                Path(blob_ref),
+                            ]
+                            for c in candidates:
+                                if c.exists():
+                                    body_dict = json.loads(c.read_text(encoding="utf-8"))
+                                    break
+                            if not body_dict:
+                                found = glob.glob(f"**/blobs/{blob_ref}", recursive=True)
+                                if found:
+                                    body_dict = json.loads(Path(found[0]).read_text(encoding="utf-8"))
+                        except Exception:
+                            pass
 
             if not url:
                 continue
@@ -93,7 +106,7 @@ class MetamorphicOracle:
             # -------------------------------------------------------------
             if path == "/api/products" and "category" in query and body_dict:
                 cat_req = query["category"][0].strip().lower()
-                items = body_dict.get("items", [])
+                items = body_dict.get("products") or body_dict.get("items", [])
                 if isinstance(items, list):
                     leaked = [
                         it for it in items
@@ -127,7 +140,7 @@ class MetamorphicOracle:
             # -------------------------------------------------------------
             if path == "/api/products" and method == "GET" and body_dict:
                 sort_val = query.get("sort", [""])[0]
-                items = body_dict.get("items", [])
+                items = body_dict.get("products") or body_dict.get("items", [])
                 item_ids = [it.get("id") for it in items if isinstance(it, dict) and "id" in it]
 
                 if not sort_val or sort_val in ("default", ""):

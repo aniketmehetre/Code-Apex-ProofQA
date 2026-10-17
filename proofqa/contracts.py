@@ -96,6 +96,7 @@ class NetworkEvent(BaseModel):
     first_party: bool
     request_body_hash: str | None = None
     response_blob_ref: str | None = None
+    body_json: Any = None
     timestamp_ms: float = 0.0
 
 

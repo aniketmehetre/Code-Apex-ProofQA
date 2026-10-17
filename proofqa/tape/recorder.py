@@ -25,6 +25,9 @@ from proofqa.contracts import (
 )
 
 
+GLOBAL_BLOB_CACHE: dict[str, Any] = {}
+
+
 class TapeRecorder:
     """Manages an append-only JSONL tape, response blob storage, and Playwright traces."""
 
@@ -149,6 +152,7 @@ class TapeRecorder:
         except Exception:
             pass
 
+        parsed_json: Any = None
         blob_ref: str | None = None
         try:
             content_type = res.headers.get("content-type", "")
@@ -160,13 +164,14 @@ class TapeRecorder:
                     blob_path = self.blob_dir / blob_ref
                     if not blob_path.exists():
                         blob_path.write_bytes(body)
-                    if is_first_party:
-                        try:
-                            parsed_json = json.loads(body.decode("utf-8"))
+                    try:
+                        parsed_json = json.loads(body.decode("utf-8"))
+                        GLOBAL_BLOB_CACHE[blob_ref] = parsed_json
+                        if is_first_party:
                             parsed_path = urlparse(url).path
                             self.last_api_responses[parsed_path] = parsed_json
-                        except Exception:
-                            pass
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -177,6 +182,7 @@ class TapeRecorder:
             first_party=is_first_party,
             request_body_hash=req_body_hash,
             response_blob_ref=blob_ref,
+            body_json=parsed_json,
             timestamp_ms=time.time() * 1000,
         )
         self.record_event(event)

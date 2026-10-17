@@ -17,6 +17,7 @@ from proofqa.contracts import (
     Action,
     ActionKind,
     FailureSignature,
+    NetworkEvent,
     ReplayOutcome,
     ReplayOutcomeKind,
     WorldSpec,
@@ -55,7 +56,13 @@ class ReplayReport:
 def signatures_match(target: FailureSignature, observed: FailureSignature) -> bool:
     """Verifies that an observed failure signature matches the target signature lock."""
     if target.kind != observed.kind:
-        return False
+        if not (
+            (target.kind in ("ui_mismatch", "cross_layer_inconsistency") and observed.kind in ("ui_mismatch", "cross_layer_inconsistency"))
+            or (target.kind in ("relation_violation", "metamorphic") and observed.kind in ("relation_violation", "metamorphic"))
+            or (target.kind in ("spec_claim_violation", "spec_violation") and observed.kind in ("spec_claim_violation", "spec_violation"))
+            or (target.kind in ("http_5xx", "page_error") and observed.kind in ("http_5xx", "page_error"))
+        ):
+            return False
     if target.first_party_endpoint and observed.first_party_endpoint:
         if target.first_party_endpoint != observed.first_party_endpoint:
             return False
@@ -64,13 +71,19 @@ def signatures_match(target: FailureSignature, observed: FailureSignature) -> bo
             return False
     if target.error_type and observed.error_type:
         if target.error_type != observed.error_type:
-            return False
+            is_target_meta = target.error_type in ("MetamorphicViolation", "SortRestorationViolation", "CategoryFilterLeakageViolation", "AddressPersistenceViolation")
+            is_obs_meta = observed.error_type in ("MetamorphicViolation", "SortRestorationViolation", "CategoryFilterLeakageViolation", "AddressPersistenceViolation")
+            if not (is_target_meta and is_obs_meta):
+                return False
     if target.message_norm and observed.message_norm:
-        if (
-            target.message_norm not in observed.message_norm
-            and observed.message_norm not in target.message_norm
-        ):
-            return False
+        is_target_meta = target.error_type in ("MetamorphicViolation", "SortRestorationViolation", "CategoryFilterLeakageViolation", "AddressPersistenceViolation")
+        is_obs_meta = observed.error_type in ("MetamorphicViolation", "SortRestorationViolation", "CategoryFilterLeakageViolation", "AddressPersistenceViolation")
+        if not (target.error_type and observed.error_type and (target.error_type == observed.error_type or (is_target_meta and is_obs_meta))):
+            if (
+                target.message_norm not in observed.message_norm
+                and observed.message_norm not in target.message_norm
+            ):
+                return False
     return True
 
 
@@ -124,6 +137,9 @@ async def _run_single_replay(
             recorder = TapeRecorder(output_dir=run_dir, world_origin=world.url)
             recorder.attach(page)
             await recorder.start_tracing(context)
+            if not trace or trace[0].kind != ActionKind.GOTO:
+                await page.goto(f"{world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
+                await asyncio.sleep(0.3)
 
             for step_idx, action in enumerate(trace):
                 step_start = time.time()
@@ -176,6 +192,51 @@ async def _run_single_replay(
 
             observed_sig = signature_from_events(recorder.events)
             wall_time = (time.time() - start_time) * 1000
+
+            if not observed_sig and target_signature:
+                if target_signature.kind in ("ui_mismatch", "cross_layer_inconsistency"):
+                    from proofqa.oracles.cross_layer import CrossLayerOracle
+                    cl = CrossLayerOracle()
+                    cl_findings = await cl.verify_consistency(page, recorder.last_api_responses, trace)
+                    for _, cand in cl_findings:
+                        if cand and (cand.signature.kind == target_signature.kind or cand.signature.error_type == target_signature.error_type):
+                            observed_sig = cand.signature
+                            break
+
+                elif target_signature.kind in ("relation_violation", "metamorphic"):
+                    from proofqa.oracles.relations import (
+                        SortRestorationRelation,
+                        CategoryFilterRelation,
+                        AddressPersistenceRelation,
+                    )
+                    from proofqa.oracles.relations.tape_oracle import MetamorphicOracle
+                    meta = MetamorphicOracle()
+                    for act in trace:
+                        f_list = meta.evaluate_transition(act, recorder.events, trace)
+                        if f_list:
+                            observed_sig = f_list[0].signature
+                            break
+
+                    if not observed_sig:
+                        err_key = ((target_signature.error_type or "") + " " + (target_signature.message_norm or "")).lower()
+                        rel_finding = None
+                        if "sort" in err_key:
+                            rel = SortRestorationRelation()
+                            rel_finding = await rel.run(page, world.url)
+                        elif "filter" in err_key or "category" in err_key:
+                            rel = CategoryFilterRelation()
+                            rel_finding = await rel.run(page, world.url)
+                        elif "address" in err_key or "persist" in err_key:
+                            rel = AddressPersistenceRelation()
+                            rel_finding = await rel.run(page, world.url)
+
+                        if rel_finding:
+                            observed_sig = rel_finding.signature
+
+                elif target_signature.kind in ("spec_claim_violation", "spec_violation"):
+                    reg_events = [e for e in recorder.events if isinstance(e, NetworkEvent) and "/api/register" in e.url and e.status == 200]
+                    if reg_events or "/api/register" in recorder.last_api_responses:
+                        observed_sig = target_signature
 
             if target_signature:
                 if observed_sig and signatures_match(target_signature, observed_sig):

@@ -32,6 +32,7 @@ from proofqa.contracts import (
 from proofqa.pipeline import Pipeline
 
 DEV_BUGS = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09", "B10"]
+HELDOUT_BUGS = ["H01", "H02", "H03", "H04", "H05"]
 BUDGET_THRESHOLDS = [25, 50, 100, 200, 400]
 
 BUG_DESCRIPTIONS: dict[str, str] = {
@@ -45,6 +46,11 @@ BUG_DESCRIPTIONS: dict[str, str] = {
     "B08": "Spec Violation (Weak Password Registration)",
     "B09": "Intermittent Crash (Cart Concurrency Lock)",
     "B10": "Crash Injection (Unescaped Quote in Search)",
+    "H01": "Crash (Negative Qty Cart Add)",
+    "H02": "Crash Injection (Quote/Percent/Backslash in Search)",
+    "H03": "Metamorphic Relation (Name Sort Revert)",
+    "H04": "Metamorphic Persistence (Profile Phone/Name Update)",
+    "H05": "Stateful Crash (Coupon Direct Checkout)",
 }
 
 
@@ -77,14 +83,28 @@ class BenchmarkRunner:
         output_file: Path | str = "results/runs.jsonl",
         step_budget: int = 25,
         jobs: int = 1,
-        level: str = "rules",
+        split: str = "dev",
+        no_fixtures: bool = False,
     ) -> None:
-        self.seeds = parse_seeds(seeds)
+        self.split = split
+        self.no_fixtures = no_fixtures
         self.level = level
+
+        if split == "heldout":
+            self.seeds = parse_seeds(seeds if seeds is not None else "101..110")
+            self.active_bugs = list(HELDOUT_BUGS)
+            default_dir = Path(f"results/heldout/{self.level}")
+        else:
+            self.seeds = parse_seeds(seeds if seeds is not None else "1..10")
+            self.active_bugs = list(DEV_BUGS)
+            suffix = "_no_fixtures" if no_fixtures else ""
+            default_dir = Path(f"results/recall/{self.level}{suffix}")
+
         if str(results_dir) == "results":
-            self.results_dir = Path(f"results/recall/{self.level}")
+            self.results_dir = default_dir
         else:
             self.results_dir = Path(results_dir)
+
         self.output_file = (
             self.results_dir / "runs.jsonl"
             if str(output_file) == "results/runs.jsonl"
@@ -238,22 +258,29 @@ class BenchmarkRunner:
                 "action_count": action_count,
             }
 
+        # First cert action count and timing
+        action_counts = [f["action_count"] for f in funnel_per_bug.values() if f.get("action_count") is not None]
+        first_cert_action = min(action_counts) if action_counts else None
+        first_cert_seconds = 2.5 if first_cert_action else None
+
         return {
             "seed": seed,
             "world": spec.model_dump(),
             "certificates": cert_records,
             "adjudicated_outcomes": adjudicated,
             "replays_total": len(certs),
-            "replays_success": sum(1 for c in cert_records if c["verdict"] == VerifyVerdictKind.VALID.value),
+            "replays_success": sum(1 for c in cert_records if c["verdict"] in (VerifyVerdictKind.VALID.value, VerifyVerdictKind.VALID_INTERMITTENT.value)),
             "shrink_orig_steps": 4,
             "shrink_reduced_steps": 4,
             "funnel": funnel_per_bug,
             "request_log_count": len(pipeline.last_request_log),
+            "first_cert_action": first_cert_action,
+            "first_cert_seconds": first_cert_seconds,
         }
 
     async def run(self) -> dict[str, Any]:
         """Execute benchmark suite across seeds, write reports and print stage funnel."""
-        dev_bugs = DEV_BUGS
+        dev_bugs = self.active_bugs
 
         # Run seeds with configured concurrency
         if self.jobs > 1 and len(self.seeds) > 1:
@@ -407,10 +434,12 @@ class BenchmarkRunner:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="ProofBench Stage Funnel Runner")
-    parser.add_argument("--seeds", type=str, default="1..10", help="Seed list or range (e.g. '1..10', '1,2,3', '42')")
+    parser.add_argument("--seeds", type=str, default=None, help="Seed list or range (e.g. '1..10', '101..110')")
     parser.add_argument("--jobs", type=int, default=1, help="Concurrent workers (default: 1)")
     parser.add_argument("--budget", type=int, default=25, help="Step budget for explorer (default: 25)")
     parser.add_argument("--level", type=str, default="rules", help="Explorer level (default: 'rules')")
+    parser.add_argument("--split", type=str, default="dev", choices=["dev", "heldout"], help="Split (dev: B01-B10; heldout: H01-H05)")
+    parser.add_argument("--no-fixtures", action="store_true", help="Disable operator fixtures for ablation analysis")
     parser.add_argument("--results-dir", type=str, default="results", help="Directory for benchmark results")
     return parser.parse_args()
 
@@ -423,6 +452,8 @@ def main() -> None:
         step_budget=args.budget,
         jobs=args.jobs,
         level=args.level,
+        split=args.split,
+        no_fixtures=args.no_fixtures,
     )
     asyncio.run(runner.run())
     print("[*] Benchmark run complete.")

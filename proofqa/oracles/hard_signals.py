@@ -58,10 +58,18 @@ class HardSignalsOracle:
         for ev in events:
             if isinstance(ev, NetworkEvent) and ev.first_party and ev.status >= 500:
                 endpoint = urlparse(ev.url).path or "/"
+                error_type = None
+                if ev.body_json and isinstance(ev.body_json, dict):
+                    detail = ev.body_json.get("detail", "")
+                    if ":" in detail:
+                        error_type = detail.split(":", 1)[0].strip()
+                    elif detail:
+                        error_type = detail.strip()
                 sig = FailureSignature(
                     kind="http_5xx",
                     first_party_endpoint=endpoint,
                     status=ev.status,
+                    error_type=error_type,
                     message_norm=normalize_message(f"HTTP {ev.status} on {endpoint}"),
                     top_frame=None,
                 )
@@ -103,19 +111,27 @@ class HardSignalsOracle:
         claim: str,
         action_prefix: list[Action],
     ) -> Finding | None:
-        sig_key = f"{sig.kind}:{sig.first_party_endpoint}:{sig.status}:{sig.message_norm}"
+        sig_key = f"{sig.kind}:{sig.first_party_endpoint}:{sig.status}:{sig.error_type or ''}:{sig.message_norm}"
         if sig_key in self._seen_signatures:
             return None
         self._seen_signatures.add(sig_key)
+
+        steps = list(action_prefix)
+        is_intermittent = (
+            sig.error_type == "LockTimeoutException"
+            or any(getattr(a, "burst", 1) > 1 for a in steps)
+        )
+        if is_intermittent and steps and not any(getattr(a, "burst", 1) > 1 for a in steps):
+            steps[-1] = steps[-1].model_copy(update={"burst": 5})
 
         finding_id = f"finding_A_{hashlib.sha256(sig_key.encode('utf-8')).hexdigest()[:8]}"
         finding = Finding(
             id=finding_id,
             oracle_class=OracleClass.A,
-            tier=Tier.SUSPECTED,
+            tier=Tier.INTERMITTENT if is_intermittent else Tier.SUSPECTED,
             signature=sig,
             claim=claim,
-            steps=list(action_prefix),
+            steps=steps,
             confidence=1.0,
             intent_confirmation_needed=False,
         )
