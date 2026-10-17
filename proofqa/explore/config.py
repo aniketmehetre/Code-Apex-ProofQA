@@ -33,6 +33,8 @@ class ExplorerConfig:
     per_path_state_cap: int = 8
     per_page_probe_cap: int = 5
     per_probe_budget: int = 10
+    archive_budget_fraction: float = 0.5
+    global_visit_cap: int = 15
 
     def __post_init__(self) -> None:
         if self.level not in VALID_LEVELS:

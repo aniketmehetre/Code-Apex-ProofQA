@@ -16,7 +16,16 @@ async def resolve_element(page: Page, loc: Locator | None, timeout_ms: int = 400
     if not loc:
         return None
 
-    # 1. Role + Name (exact first, then case-insensitive substring)
+    # 1. TestID (unambiguous element selector if present)
+    if loc.testid:
+        try:
+            cand = page.get_by_test_id(loc.testid)
+            if await cand.count() > 0 and await cand.first.is_visible():
+                return cand.first
+        except Exception:
+            pass
+
+    # 2. Role + Name (exact first, then case-insensitive substring)
     if loc.role:
         try:
             cand = page.get_by_role(loc.role, name=loc.name)  # type: ignore[arg-type]
@@ -32,19 +41,10 @@ async def resolve_element(page: Page, loc: Locator | None, timeout_ms: int = 400
             except Exception:
                 pass
 
-    # 2. Label
+    # 3. Label
     if loc.label:
         try:
             cand = page.get_by_label(loc.label)
-            if await cand.count() > 0 and await cand.first.is_visible():
-                return cand.first
-        except Exception:
-            pass
-
-    # 3. TestID
-    if loc.testid:
-        try:
-            cand = page.get_by_test_id(loc.testid)
             if await cand.count() > 0 and await cand.first.is_visible():
                 return cand.first
         except Exception:

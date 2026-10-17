@@ -44,6 +44,7 @@ class FormPlan:
         self,
         seed: int = 42,
         fact_store: SpecFactStore | None = None,
+        tokens: set[str] | list[str] | None = None,
     ) -> dict[str, str]:
         """Generates deterministic, valid baseline values satisfying known specification facts."""
         values: dict[str, str] = {}
@@ -72,7 +73,10 @@ class FormPlan:
                 values[f.id] = str(max(1, min_val))
 
             elif subj in ("coupon", "promo"):
-                values[f.id] = "SAVE20"
+                if tokens:
+                    values[f.id] = next(iter(tokens))
+                else:
+                    values[f.id] = "SAVE10"
 
             elif subj == "phone":
                 values[f.id] = "5550199"
@@ -84,6 +88,30 @@ class FormPlan:
                 values[f.id] = "Valid Test Entry"
 
         return values
+
+    def generate_baseline_actions(
+        self,
+        fact_store: SpecFactStore | None = None,
+        tokens: set[str] | list[str] | None = None,
+        seed: int = 42,
+    ) -> list[Action]:
+        """Generates a complete fill-and-submit action plan for the form."""
+        baseline = self.baseline_values(seed=seed, fact_store=fact_store, tokens=tokens)
+        actions: list[Action] = []
+        for f in self.fields:
+            val = baseline.get(f.id, "test")
+            actions.append(
+                Action(
+                    id=f"plan_{f.id}",
+                    kind=f.kind,
+                    locator=f.locator,
+                    value=val,
+                    params={"form_plan": True},
+                )
+            )
+        if self.submit_control:
+            actions.append(self.submit_control)
+        return actions
 
     def boundary_variants_for_field(
         self,

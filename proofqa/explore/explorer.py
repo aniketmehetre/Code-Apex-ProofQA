@@ -18,8 +18,10 @@ from proofqa.contracts import (
     StateFingerprint,
     TapeEvent,
 )
+from proofqa.explore.archive import GoExploreArchive
 from proofqa.explore.auth import AuthBootstrap
 from proofqa.explore.config import ExplorerConfig, ExplorerLevel
+from proofqa.explore.forms import extract_form_plans
 from proofqa.explore.grounding import ground_action, sanitize_input_value
 from proofqa.explore.inputs import get_field_input
 from proofqa.explore.probes.base import ProbeContext
@@ -29,6 +31,7 @@ from proofqa.explore.probes.pairwise import PairwiseProbe
 from proofqa.explore.probes.registry import ProbeRegistry
 from proofqa.explore.probes.reload import ReloadProbe
 from proofqa.explore.probes.revert import RevertProbe
+from proofqa.explore.semantic_state import compute_semantic_state
 from proofqa.explore.state_graph import StateGraph
 from proofqa.explore.tokens import TokenPool
 from proofqa.spec.facts import SpecFactStore
@@ -116,6 +119,7 @@ class RuleBasedExplorer:
         self.candidates: list[CandidateFinding] = []
         self.action_history: list[Action] = []
         self.recorder: TapeRecorder | None = None
+        self.archive = GoExploreArchive(max_cell_visits=self.config.global_visit_cap)
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -153,8 +157,11 @@ class RuleBasedExplorer:
             self.recorder = recorder
 
             # 1. Initialize root state at "/"
-            await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
-            await asyncio.sleep(0.3)
+            try:
+                await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="networkidle", timeout=10000)
+            except Exception:
+                await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
+                await asyncio.sleep(0.5)
             fp = await get_page_fingerprint(page)
             recorder.record_state(fp)
 
@@ -169,6 +176,9 @@ class RuleBasedExplorer:
             candidates = await extract_candidate_actions(page, origin=self.world.url)
             self.token_pool.harvest_from_placeholders(candidates)
             current_state_id = self.graph.add_state(fp, candidates, depth=0)
+            if self.level in ("rules_probes_goexplore", "full"):
+                sem_state = await compute_semantic_state(page, fp, recorder.last_api_responses)
+                self.archive.add_or_update(sem_state.key, [], candidates)
 
             probe_queue: list[Action] = []
 
@@ -212,7 +222,44 @@ class RuleBasedExplorer:
                         if (is_trap and visit_count >= 1) or path_state_count > self.config.per_path_state_cap:
                             untried_actions = []
 
-                        # If no untried actions in current state or depth exceeded, backtrack!
+                        # In Go-Explore levels, attempt return-to-cell if in archive phase or if state is exhausted
+                        if self.level in ("rules_probes_goexplore", "full"):
+                            archive_phase = steps >= int(self.budget_steps * (1.0 - self.config.archive_budget_fraction))
+                            if archive_phase or not untried_actions or current_depth >= self.budget_depth:
+                                cell = self.archive.select_cell(rng)
+                                if cell and cell.prefix:
+                                    self.world.reset()
+                                    try:
+                                        await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="networkidle", timeout=10000)
+                                    except Exception:
+                                        await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
+                                        await asyncio.sleep(0.5)
+                                    diverged = False
+                                    for p_act in cell.prefix:
+                                        if p_act.kind == ActionKind.GOTO:
+                                            val = p_act.value or "/"
+                                            target_u = val if val.startswith("http") else f"{self.world.url.rstrip('/')}{val}"
+                                            await page.goto(target_u, wait_until="domcontentloaded", timeout=10000)
+                                        else:
+                                            ok, _ = await execute(page, p_act)
+                                            if not ok:
+                                                diverged = True
+                                                break
+                                        await asyncio.sleep(0.15)
+
+                                    ret_fp = await get_page_fingerprint(page)
+                                    ret_sem = await compute_semantic_state(page, ret_fp, recorder.last_api_responses)
+                                    if diverged or ret_sem.key != cell.state_key:
+                                        self.archive.mark_stale(cell.state_key)
+                                    else:
+                                        fp = ret_fp
+                                        current_depth = len(cell.prefix)
+                                        self.action_history = list(cell.prefix)
+                                        candidates = await extract_candidate_actions(page, origin=self.world.url)
+                                        current_state_id = self.graph.add_state(fp, candidates, depth=current_depth)
+                                        untried_actions = self.graph.get_untried_actions(current_state_id)
+
+                        # If no untried actions in current state or depth exceeded, backtrack via graph!
                         if not untried_actions or current_depth >= self.budget_depth:
                             nearest = self.graph.find_nearest_state_with_untried(current_state_id)
                             if not nearest:
@@ -221,8 +268,11 @@ class RuleBasedExplorer:
 
                             # Backtrack by resetting world and replaying path from root
                             self.world.reset()
-                            await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
-                            await asyncio.sleep(0.3)
+                            try:
+                                await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="networkidle", timeout=10000)
+                            except Exception:
+                                await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
+                                await asyncio.sleep(0.5)
 
                             replay_path = self.graph.path_from_root(nearest)
                             for path_action in replay_path:
@@ -278,6 +328,20 @@ class RuleBasedExplorer:
                                     selected_action = None
                         else:
                             selected_action = None
+
+                        if selected_action is None and self.level in ("rules_probes_goexplore", "full"):
+                            form_plans = extract_form_plans(candidates)
+                            for fplan in form_plans:
+                                if any(a.id in {u.id for u in untried_actions} for a in fplan.fields):
+                                    f_acts = fplan.generate_baseline_actions(
+                                        fact_store=self.spec_facts,
+                                        tokens=self.token_pool.get_tokens(),
+                                        seed=self.seed,
+                                    )
+                                    if f_acts:
+                                        selected_action = f_acts[0]
+                                        probe_queue.extend(f_acts[1:])
+                                        break
 
                         if selected_action is None:
                             # Choose next action from untried
@@ -348,6 +412,13 @@ class RuleBasedExplorer:
 
                 new_state_id = self.graph.add_state(new_fp, new_candidates, depth=current_depth + 1)
                 self.graph.record_transition(current_state_id, selected_action, new_state_id, step=steps)
+
+                # Record in Go-Explore archive
+                if self.level in ("rules_probes_goexplore", "full"):
+                    new_sem_state = await compute_semantic_state(page, new_fp, recorder.last_api_responses)
+                    self.archive.add_or_update(new_sem_state.key, list(self.action_history), new_candidates)
+                    if hasattr(selected_action, "id"):
+                        self.archive.record_action_tried(new_sem_state.key, selected_action.id)
 
                 # Notify oracle hooks
                 for hook in self.hooks:
