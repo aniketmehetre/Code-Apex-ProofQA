@@ -150,9 +150,15 @@ def write_summary_and_reports(summary: dict[str, Any], output_dir: Path | str = 
 """
     (out / "report.md").write_text(report_content, encoding="utf-8")
 
-    # 3. docs/claims.md
-    claims_file = Path("docs/claims.md")
-    claims_text = f"""# Grounded Claims Registry (ProofQA 2.0)
+    # 3. docs/claims.md (only for official benchmark runs under results/, not test tmp_paths)
+    is_official_run = (out == Path("results") or str(out).startswith("results\\") or str(out).startswith("results/"))
+    if is_official_run:
+        if out != Path("results"):
+            Path("results").mkdir(parents=True, exist_ok=True)
+            Path("results/summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+        claims_file = Path("docs/claims.md")
+        claims_text = f"""# Grounded Claims Registry (ProofQA 2.0)
 
 Every metric in this registry is empirically derived from ProofBench runs recorded in `results/summary.json`.
 
@@ -165,4 +171,4 @@ Every metric in this registry is empirically derived from ProofBench runs record
 | C-05 | Trace Shrink Reduction | {summary['average_shrink_reduction_pct']:.1f}% | [65.0%, 85.0%] | `proofqa/proof/shrink.py` |
 | C-06 | Adversarial Prompt Injection Hijack Rate | {summary['adversarial_hijack_rate']*100:.1f}% | [0.0%, 0.0%] | `tests/test_adversarial_lab.py` |
 """
-    claims_file.write_text(claims_text, encoding="utf-8")
+        claims_file.write_text(claims_text, encoding="utf-8")

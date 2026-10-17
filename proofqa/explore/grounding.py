@@ -52,27 +52,29 @@ def _locator_matches(cand_loc: Locator | None, target_loc: Locator | None) -> bo
         return True
 
     # Match by data-testid if present
-    if cand_loc.testid and target_loc.testid and cand_loc.testid == target_loc.testid:
-        return True
+    if cand_loc.testid and target_loc.testid:
+        return cand_loc.testid == target_loc.testid
 
     # Match by CSS fallback selector
     if cand_loc.css_fallback and target_loc.css_fallback and cand_loc.css_fallback == target_loc.css_fallback:
         return True
 
-    # Match by role and name (ARIA accessible name)
+    # Match by role and name / label (ARIA accessible name)
     if cand_loc.role and target_loc.role and cand_loc.role == target_loc.role:
-        if not cand_loc.name or not target_loc.name:
+        cand_names = [n.strip().lower() for n in (cand_loc.name, cand_loc.label) if n]
+        target_names = [n.strip().lower() for n in (target_loc.name, target_loc.label) if n]
+        if not cand_names or not target_names:
             return True
-        cand_name = cand_loc.name.strip().lower()
-        target_name = target_loc.name.strip().lower()
-        if cand_name and target_name and (cand_name == target_name or cand_name in target_name or target_name in cand_name):
-            return True
-
-    # Match by label
-    if cand_loc.label and target_loc.label:
-        cl = cand_loc.label.strip().lower()
-        tl = target_loc.label.strip().lower()
-        if cl == tl or cl in tl or tl in cl:
+        # 1. Exact string match
+        for cn in cand_names:
+            for tn in target_names:
+                if cn == tn:
+                    return True
+        # 2. Word-boundary match: require strong overlap (at least 50% of candidate words or >= 2 words)
+        cand_words = {w for n in cand_names for w in re.findall(r'[a-z0-9]+', n) if len(w) > 1 and w not in {"the", "a", "an", "to", "in", "on", "of", "by", "for"}}
+        target_words = {w for n in target_names for w in re.findall(r'[a-z0-9]+', n) if len(w) > 1 and w not in {"the", "a", "an", "to", "in", "on", "of", "by", "for"}}
+        common = cand_words & target_words
+        if common and (len(common) == len(cand_words) or len(common) >= 2 or len(common) / max(len(cand_words), 1) >= 0.5):
             return True
 
     return False
@@ -104,12 +106,34 @@ def ground_action(
 
     # 2. Match interactive actions against grounded controls
     matched_control: Action | None = None
-    for control in grounded_controls:
-        # Check action kind compatibility
-        if control.kind == action.kind or (action.kind == ActionKind.PRESS and control.kind == ActionKind.CLICK):
-            if control.id == action.id or _locator_matches(action.locator, control.locator):
-                matched_control = control
-                break
+    target_testid = action.locator.testid if action.locator else None
+
+    # Pass 1: exact testid match if action specified testid
+    if target_testid:
+        for control in grounded_controls:
+            if (control.kind == action.kind or (action.kind == ActionKind.PRESS and control.kind == ActionKind.CLICK)) and control.locator:
+                if control.locator.testid == target_testid:
+                    matched_control = control
+                    break
+
+    # Pass 2: exact name or label match
+    if not matched_control and action.locator:
+        cand_exact = [n.strip().lower() for n in (action.locator.name, action.locator.label) if n]
+        for control in grounded_controls:
+            if (control.kind == action.kind or (action.kind == ActionKind.PRESS and control.kind == ActionKind.CLICK)) and control.locator:
+                ctrl_exact = [n.strip().lower() for n in (control.locator.name, control.locator.label) if n]
+                if any(ce in ctrl_exact for ce in cand_exact):
+                    if not action.locator.role or not control.locator.role or action.locator.role == control.locator.role:
+                        matched_control = control
+                        break
+
+    # Pass 3: generic locator matching with word overlap
+    if not matched_control:
+        for control in grounded_controls:
+            if control.kind == action.kind or (action.kind == ActionKind.PRESS and control.kind == ActionKind.CLICK):
+                if control.id == action.id or _locator_matches(action.locator, control.locator):
+                    matched_control = control
+                    break
 
     if not matched_control:
         TELEMETRY.dropped_count += 1
@@ -121,10 +145,14 @@ def ground_action(
     sanitized_val = sanitize_input_value(action.value)
     TELEMETRY.grounded_count += 1
 
+    out_locator = matched_control.locator
+    if action.locator and not action.locator.testid and (action.locator.role or action.locator.name or action.locator.label):
+        out_locator = action.locator
+
     return Action(
         id=action.id,
         kind=action.kind,
-        locator=matched_control.locator,
+        locator=out_locator,
         value=sanitized_val,
         params=action.params or matched_control.params,
         burst=getattr(action, "burst", 1),

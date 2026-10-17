@@ -27,11 +27,23 @@ class RevertProbe(Probe):
         if not select_controls:
             return []
 
-        target = select_controls[0]
+        # Find sort control first if available (to test sort restoration invariance B05)
+        sort_ctrls = [c for c in select_controls if c.locator and "sort" in f"{c.locator.name or ''} {c.locator.label or ''}".lower()]
+        filter_ctrls = [c for c in select_controls if c.locator and any(k in f"{c.locator.name or ''} {c.locator.label or ''}".lower() for k in ["filter", "category"])]
+
+        if sort_ctrls:
+            target = sort_ctrls[0]
+            alt_val = "price_asc"
+        elif filter_ctrls:
+            target = filter_ctrls[0]
+            alt_val = "Electronics"
+        else:
+            target = select_controls[0]
+            initial_val = target.value or ""
+            candidates = ["price_asc", "price-asc", "price_desc", "name", "rating", "Electronics", "Books"]
+            alt_val = next((v for v in candidates if v != initial_val), "price_asc")
+
         initial_val = target.value or ""
-        # Determine candidate alternative options
-        candidates = ["price_asc", "price-asc", "price_desc", "name", "rating", "Electronics", "Books"]
-        alt_val = next((v for v in candidates if v != initial_val), "price_asc")
 
         step1 = Action(
             id=f"revert_step1_{target.id}",

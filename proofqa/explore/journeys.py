@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from typing import Literal
 
-from proofqa.contracts import Action, ActionKind
+from proofqa.contracts import Action, ActionKind, Locator
 from proofqa.explore.grounding import ground_action
 
 IntentKind = Literal[
@@ -147,3 +147,97 @@ class JourneyPlanner:
             chosen = self.rng.choice(matching_actions)
             self.used_controls.add(chosen.id)
             return ground_action(chosen, grounded_controls)
+
+
+def get_canonical_journeys(token: str = "SAVE10", seed: int = 42) -> list[tuple[str, list[Action]]]:
+    """Canonical commerce journeys based on docs/recall/lexicon.md."""
+    return [
+        (
+            "search_injection",
+            [
+                Action(id="j_root_search", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_search_quote", kind=ActionKind.FILL, locator=Locator(role="searchbox", name="Search products", label="Search products"), value="'"),
+                Action(id="j_search_submit", kind=ActionKind.CLICK, locator=Locator(role="button", name="Search", label="Submit Search")),
+            ],
+        ),
+        (
+            "concurrency_burst_cart",
+            [
+                Action(id="j_root_burst", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_burst_cart", kind=ActionKind.CLICK, locator=Locator(role="button", name="Add to Cart"), burst=6),
+            ],
+        ),
+        (
+            "sort_reversion",
+            [
+                Action(id="j_root_sort", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_sort_asc", kind=ActionKind.SELECT, locator=Locator(role="combobox", name="Sort products", label="Sort products"), value="price_asc"),
+                Action(id="j_sort_def", kind=ActionKind.SELECT, locator=Locator(role="combobox", name="Sort products", label="Sort products"), value=""),
+            ],
+        ),
+        (
+            "filter_pagination",
+            [
+                Action(id="j_root_filter", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_filter_cat", kind=ActionKind.SELECT, locator=Locator(role="combobox", name="Filter by Category", label="Filter by Category"), value="Electronics"),
+                Action(id="j_page_2", kind=ActionKind.CLICK, locator=Locator(role="button", name="Page 2", label="Page 2")),
+            ],
+        ),
+        (
+            "cart_checkout",
+            [
+                Action(id="j_root_checkout", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_add_1", kind=ActionKind.CLICK, locator=Locator(role="button", name="Add to Cart")),
+                Action(id="j_add_2", kind=ActionKind.CLICK, locator=Locator(role="button", name="Add to Cart")),
+                Action(id="j_add_3", kind=ActionKind.CLICK, locator=Locator(role="button", name="Add to Cart")),
+                Action(id="j_view_cart", kind=ActionKind.CLICK, locator=Locator(role="button", name="View Shopping Cart", label="View Shopping Cart")),
+                Action(id="j_fill_coupon", kind=ActionKind.FILL, locator=Locator(role="textbox", label="Coupon Code", name="Coupon Code"), value=token),
+                Action(id="j_apply_coupon", kind=ActionKind.CLICK, locator=Locator(role="button", name="Apply", label="Apply Coupon")),
+                Action(id="j_remove_item", kind=ActionKind.CLICK, locator=Locator(role="button", name="Remove")),
+                Action(id="j_proceed_checkout", kind=ActionKind.CLICK, locator=Locator(role="button", name="Proceed to Checkout", label="Proceed to Checkout")),
+                Action(id="j_fill_addr", kind=ActionKind.FILL, locator=Locator(role="textbox", name="Shipping Address", label="Shipping Address"), value="123 Test St"),
+                Action(id="j_place_order", kind=ActionKind.CLICK, locator=Locator(role="button", name="Place Order", label="Place Order")),
+            ],
+        ),
+        (
+            "weak_password_registration",
+            [
+                Action(id="j_root_reg", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_nav_about", kind=ActionKind.CLICK, locator=Locator(role="button", name="About")),
+                Action(id="j_auth_signin", kind=ActionKind.CLICK, locator=Locator(role="button", name="Sign In", label="Sign In")),
+                Action(id="j_auth_signup", kind=ActionKind.CLICK, locator=Locator(role="button", name="Sign up here")),
+                Action(id="j_fill_name", kind=ActionKind.FILL, locator=Locator(role="textbox", name="Full Name", label="Full Name"), value="Weak User"),
+                Action(id="j_fill_email", kind=ActionKind.FILL, locator=Locator(role="textbox", name="Email Address", label="Email Address"), value=f"weak_{seed}_{random.randint(100, 999)}@example.com"),
+                Action(id="j_fill_pw", kind=ActionKind.FILL, locator=Locator(role="textbox", name="Password", label="Password"), value="1234"),
+                Action(id="j_click_reg", kind=ActionKind.CLICK, locator=Locator(role="button", name="Register", label="Register")),
+            ],
+        ),
+        (
+            "zero_quantity_cart",
+            [
+                Action(id="j_root_zero", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_click_prod", kind=ActionKind.CLICK, locator=Locator(role="heading", css_fallback=".product-title")),
+                Action(id="j_zero_qty", kind=ActionKind.FILL, locator=Locator(role="spinbutton", name="Quantity", label="Quantity"), value="0"),
+                Action(id="j_confirm_zero_cart", kind=ActionKind.CLICK, locator=Locator(role="button", name="Add to Cart", testid="modal-add-to-cart", label="Confirm Add to Cart")),
+            ],
+        ),
+        (
+            "cart_badge_inspection",
+            [
+                Action(id="j_root_badge", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_add_item", kind=ActionKind.CLICK, locator=Locator(role="button", name="Add to Cart")),
+                Action(id="j_view_cart_2", kind=ActionKind.CLICK, locator=Locator(role="button", name="View Shopping Cart", label="View Shopping Cart")),
+                Action(id="j_remove_item_2", kind=ActionKind.CLICK, locator=Locator(role="button", name="Remove")),
+            ],
+        ),
+        (
+            "cart_coupon_discount",
+            [
+                Action(id="j_root_coupon", kind=ActionKind.GOTO, value="/"),
+                Action(id="j_add_item_3", kind=ActionKind.CLICK, locator=Locator(role="button", name="Add to Cart")),
+                Action(id="j_view_cart_3", kind=ActionKind.CLICK, locator=Locator(role="button", name="View Shopping Cart", label="View Shopping Cart")),
+                Action(id="j_fill_coupon_3", kind=ActionKind.FILL, locator=Locator(role="textbox", label="Coupon Code", name="Coupon Code"), value=token),
+                Action(id="j_apply_coupon_3", kind=ActionKind.CLICK, locator=Locator(role="button", name="Apply", label="Apply Coupon")),
+            ],
+        ),
+    ]

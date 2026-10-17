@@ -58,6 +58,8 @@ class StateGraph:
 
     @staticmethod
     def get_state_id(fp: StateFingerprint) -> str:
+        if fp.aria_hash:
+            return f"{fp.url_path}:{fp.aria_hash}"
         return f"{fp.url_path}:{fp.simhash}"
 
     def add_state(

@@ -133,9 +133,6 @@ class SpecClaimsOracle:
         (b) the filled value violates that fact, and
         (c) a first-party write in the same transition returned 2xx.
         """
-        if action.kind != ActionKind.FILL or not action.value or not action.locator:
-            return None
-
         if not fact_store:
             return None
 
@@ -161,27 +158,70 @@ class SpecClaimsOracle:
         if not write_response:
             return None
 
-        loc_text = " ".join(filter(None, [action.locator.name, action.locator.label, action.locator.testid])).lower()
-        subject = None
-        for kw in ["password", "quantity", "email", "address", "phone"]:
-            if kw in loc_text:
-                subject = kw
-                break
+        # Identify any filled field in current transition or recent prefix
+        candidate_actions: list[Action] = []
+        if action.kind == ActionKind.FILL and action.value and action.locator:
+            candidate_actions.append(action)
+        for prev in reversed(action_prefix[-6:]):
+            if prev.kind == ActionKind.FILL and prev.value and prev.locator:
+                candidate_actions.append(prev)
 
-        if not subject:
-            return None
-
-        facts = fact_store.get_facts(subject)
-        if not facts:
+        if not candidate_actions:
             return None
 
         violated_fact = None
-        val_str = action.value
-        for fact in facts:
-            if fact.kind == "min_len":
-                if len(val_str) < int(fact.value):
-                    violated_fact = fact
+        subject = None
+        val_str = ""
+        for cand_act in candidate_actions:
+            loc_text = " ".join(filter(None, [cand_act.locator.name, cand_act.locator.label, cand_act.locator.testid])).lower()
+            cand_subj = None
+            for kw in ["password", "quantity", "email", "address", "phone"]:
+                if kw in loc_text:
+                    cand_subj = kw
                     break
+
+            if not cand_subj:
+                continue
+
+            facts = fact_store.get_facts(cand_subj)
+            if not facts:
+                continue
+
+            cand_val = cand_act.value or ""
+            for fact in facts:
+                if fact.kind == "min_len":
+                    if len(cand_val) < int(fact.value):
+                        violated_fact = fact
+                        subject = cand_subj
+                        val_str = cand_val
+                        break
+                elif fact.kind == "max_len":
+                    if len(cand_val) > int(fact.value):
+                        violated_fact = fact
+                        subject = cand_subj
+                        val_str = cand_val
+                        break
+                elif fact.kind == "min":
+                    try:
+                        if float(cand_val) < float(fact.value):
+                            violated_fact = fact
+                            subject = cand_subj
+                            val_str = cand_val
+                            break
+                    except ValueError:
+                        pass
+                elif fact.kind == "max":
+                    try:
+                        if float(cand_val) > float(fact.value):
+                            violated_fact = fact
+                            subject = cand_subj
+                            val_str = cand_val
+                            break
+                    except ValueError:
+                        pass
+
+            if violated_fact:
+                break
             elif fact.kind == "max_len":
                 if len(val_str) > int(fact.value):
                     violated_fact = fact

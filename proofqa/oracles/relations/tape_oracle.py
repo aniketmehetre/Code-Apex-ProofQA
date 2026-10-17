@@ -180,6 +180,13 @@ class MetamorphicOracle:
                 if method in ("PUT", "POST", "PATCH") and 200 <= status < 300:
                     if action.kind == ActionKind.FILL and action.value:
                         self._last_saved_address = action.value
+                    else:
+                        for prev in reversed(action_prefix):
+                            if prev.kind == ActionKind.FILL and prev.value and prev.locator:
+                                loc_txt = " ".join(filter(None, [prev.locator.name, prev.locator.label, prev.locator.testid])).lower()
+                                if "address" in loc_txt or "addr" in loc_txt:
+                                    self._last_saved_address = prev.value
+                                    break
                 elif method == "GET" and self._last_saved_address and self._has_reloaded:
                     fetched_addr = body_dict.get("address") if body_dict else None
                     if fetched_addr != self._last_saved_address:

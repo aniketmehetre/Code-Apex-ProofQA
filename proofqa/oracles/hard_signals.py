@@ -122,7 +122,7 @@ class HardSignalsOracle:
             or any(getattr(a, "burst", 1) > 1 for a in steps)
         )
         if is_intermittent and steps and not any(getattr(a, "burst", 1) > 1 for a in steps):
-            steps[-1] = steps[-1].model_copy(update={"burst": 5})
+            steps[-1] = steps[-1].model_copy(update={"burst": 6})
 
         finding_id = f"finding_A_{hashlib.sha256(sig_key.encode('utf-8')).hexdigest()[:8]}"
         finding = Finding(

@@ -32,16 +32,16 @@ class AuthBootstrap:
             if (ev_type in ("network", "network_response")) and st == 401:
                 return True
 
-        # Check for presence of login form fields
+        # Check for presence of login/register form fields
         has_pw = any(
             c.kind == ActionKind.FILL and c.locator and "password" in (c.locator.name or c.locator.label or "").lower()
             for c in grounded_controls
         )
-        has_login_btn = any(
-            c.kind == ActionKind.CLICK and c.locator and "login" in (c.locator.name or "").lower()
+        has_auth_btn = any(
+            c.kind == ActionKind.CLICK and c.locator and any(t in (c.locator.name or c.locator.label or "").lower() for t in ["login", "sign in", "register"])
             for c in grounded_controls
         )
-        return has_pw and has_login_btn
+        return has_pw and has_auth_btn
 
     @staticmethod
     def plan_login_or_register(

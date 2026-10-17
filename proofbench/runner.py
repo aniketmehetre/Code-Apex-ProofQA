@@ -179,6 +179,23 @@ class BenchmarkRunner:
                     finding_obj = Finding.model_validate_json(finding_file.read_text(encoding="utf-8"))
                 except Exception:
                     pass
+            elif (c_path / "signature.json").exists() and (c_path / "claim.json").exists():
+                try:
+                    sig_data = json.loads((c_path / "signature.json").read_text(encoding="utf-8"))
+                    claim_data = json.loads((c_path / "claim.json").read_text(encoding="utf-8"))
+                    repro_data = json.loads((c_path / "repro.json").read_text(encoding="utf-8")) if (c_path / "repro.json").exists() else []
+                    steps = [Action.model_validate(s) for s in repro_data]
+                    finding_obj = Finding(
+                        id=claim_data.get("provenance", c_path.name),
+                        oracle_class=OracleClass(claim_data.get("oracle_class", "A")),
+                        tier=Tier(claim_data.get("tier", "VERIFIED")),
+                        signature=FailureSignature.model_validate(sig_data),
+                        claim=claim_data.get("claim", ""),
+                        steps=steps,
+                        confidence=claim_data.get("confidence", 1.0),
+                    )
+                except Exception:
+                    pass
 
             target_cand = finding_obj or initial_cand
             status, bid = self.adjudicator.adjudicate(target_cand, credited_bugs)

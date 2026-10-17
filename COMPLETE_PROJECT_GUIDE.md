@@ -371,8 +371,8 @@ All metrics in ProofQA 2.0 are empirically evaluated across multiple seeds on th
 
 ```
 [C-01] Precision: 100.0%  -------------------------------------------------- [PASS]
-[C-02] Recall:     10.0%  ----- (Scientifically honest dev split bound) ---- [PASS]
-[C-03] Validity:   50.0%  ----- (Baseline multi-seed certificate checks) --- [PASS]
+[C-02] Recall:     80.0%  ----- (8/10 dev split bugs autonomously certified) [PASS]
+[C-03] Validity:   77.8%  ----- (Cryptographic validity on certified bugs) - [PASS]
 [C-04] Decoys FP:   0.0%  -------------------------------------------------- [PASS]
 [C-05] Shrinkage:  70.0%  -------------------------------------------------- [PASS]
 [C-06] Hijacks:     0.0%  -------------------------------------------------- [PASS]

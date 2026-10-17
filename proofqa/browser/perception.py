@@ -98,8 +98,8 @@ async def extract_candidate_actions(
     actions: list[Action] = []
     base_origin = origin or f"{urlparse(page.url).scheme}://{urlparse(page.url).netloc}"
 
-    # 1. Buttons
-    buttons = await page.query_selector_all("button:visible")
+    # 1. Buttons and clickable elements
+    buttons = await page.query_selector_all("button:visible, [role='button']:visible")
     for btn in buttons:
         name = (await btn.text_content() or "").strip()
         testid = await btn.get_attribute("data-testid")
@@ -114,8 +114,26 @@ async def extract_candidate_actions(
                 locator=Locator(
                     role="button",
                     name=name if name else None,
-                    label=aria_label,
+                    label=aria_label or name,
                     testid=testid,
+                ),
+            )
+        )
+
+    # 1b. Product Headings (opens product detail modal)
+    headings = await page.query_selector_all("h3.product-title:visible")
+    for h in headings:
+        name = (await h.text_content() or "").strip()
+        h_id = hashlib.sha256(f"heading:{name}".encode("utf-8")).hexdigest()[:8]
+        actions.append(
+            Action(
+                id=f"act_click_{h_id}",
+                kind=ActionKind.CLICK,
+                locator=Locator(
+                    role="heading",
+                    name=name,
+                    label=name,
+                    css_fallback=".product-title",
                 ),
             )
         )

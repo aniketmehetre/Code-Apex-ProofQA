@@ -13,7 +13,7 @@ from proofqa.explore.probes.base import Probe, ProbeContext
 class BurstProbe(Probe):
     """Executes rapid concurrent burst clicks against mutating actions."""
 
-    def __init__(self, burst_size: int = 5) -> None:
+    def __init__(self, burst_size: int = 6) -> None:
         self.burst_size = burst_size
 
     @property

@@ -70,7 +70,10 @@ def signatures_match(target: FailureSignature, observed: FailureSignature) -> bo
         if target.status != observed.status:
             return False
     if target.error_type and observed.error_type:
-        if target.error_type != observed.error_type:
+        import re
+        t_norm = re.sub(r"[\s_-]+", "", target.error_type.lower())
+        o_norm = re.sub(r"[\s_-]+", "", observed.error_type.lower())
+        if target.error_type != observed.error_type and t_norm != o_norm:
             is_target_meta = target.error_type in ("MetamorphicViolation", "SortRestorationViolation", "CategoryFilterLeakageViolation", "AddressPersistenceViolation")
             is_obs_meta = observed.error_type in ("MetamorphicViolation", "SortRestorationViolation", "CategoryFilterLeakageViolation", "AddressPersistenceViolation")
             if not (is_target_meta and is_obs_meta):

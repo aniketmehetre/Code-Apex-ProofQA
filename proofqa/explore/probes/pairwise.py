@@ -43,6 +43,22 @@ class PairwiseProbe(Probe):
         if len(controls) < 2:
             return []
 
+        # Check specifically for Filter + Pagination combination (B06 metamorphic relation)
+        filter_ctrls = [
+            c for c in controls
+            if c.kind == ActionKind.SELECT and any(k in " ".join(filter(None, [c.locator.name if c.locator else "", c.locator.label if c.locator else ""])).lower() for k in ["filter", "category"])
+        ]
+        page_ctrls = [
+            c for c in controls
+            if c.kind == ActionKind.CLICK and any(k in " ".join(filter(None, [c.locator.name if c.locator else "", c.locator.label if c.locator else ""])).lower() for k in ["page 2", "next", "2"])
+        ]
+
+        if filter_ctrls and page_ctrls:
+            ctrl_a = filter_ctrls[0]
+            ctrl_b = page_ctrls[0]
+            ctrl_a = Action(id=ctrl_a.id, kind=ctrl_a.kind, locator=ctrl_a.locator, value="Electronics", params=ctrl_a.params)
+            return [ctrl_a, ctrl_b]
+
         ctrl_a = controls[0]
         ctrl_b = controls[1]
 

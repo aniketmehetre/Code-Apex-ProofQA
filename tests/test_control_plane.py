@@ -155,17 +155,20 @@ async def test_control_plane_endpoints_and_sse(tmp_path: Path, test_certificate:
         # 11. GET /certificates/{id} ZIP download
         # Place test certificate under results/certificates/
         results_cert_dir = Path("results/certificates") / test_certificate.name
-        results_cert_dir.mkdir(parents=True, exist_ok=True)
-        for item in test_certificate.iterdir():
-            if item.is_file():
-                (results_cert_dir / item.name).write_bytes(item.read_bytes())
+        try:
+            import shutil
+            shutil.copytree(test_certificate, results_cert_dir, dirs_exist_ok=True)
 
-        resp = await client.get(f"/certificates/{test_certificate.name}")
-        assert resp.status_code == 200
-        assert resp.headers["content-type"] == "application/zip"
-        # Validate valid zip archive
-        zip_buf = io.BytesIO(resp.content)
-        with zipfile.ZipFile(zip_buf, "r") as zf:
-            namelist = zf.namelist()
-            assert "manifest.json" in namelist
-            assert "claim.json" in namelist
+            resp = await client.get(f"/certificates/{test_certificate.name}")
+            assert resp.status_code == 200
+            assert resp.headers["content-type"] == "application/zip"
+            # Validate valid zip archive
+            zip_buf = io.BytesIO(resp.content)
+            with zipfile.ZipFile(zip_buf, "r") as zf:
+                namelist = zf.namelist()
+                assert "manifest.json" in namelist
+                assert "claim.json" in namelist
+        finally:
+            import shutil
+            if results_cert_dir.exists():
+                shutil.rmtree(results_cert_dir, ignore_errors=True)

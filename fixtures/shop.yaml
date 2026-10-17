@@ -7,5 +7,5 @@ accounts:
     address: "123 Market St, San Francisco, CA"
 
 promo_codes:
-  - "SAVE20"
-  - "WELCOME10"
+  - "SAVE10"
+  - "APEX20"

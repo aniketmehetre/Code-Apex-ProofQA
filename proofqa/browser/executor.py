@@ -26,21 +26,24 @@ async def resolve_element(page: Page, loc: Locator | None, timeout_ms: int = 400
         except Exception:
             pass
 
-    # 2. Role + Name (exact first, then case-insensitive substring)
+    # 2. Role + Name / Label (exact first, then case-insensitive regex)
     if loc.role:
-        try:
-            cand = page.get_by_role(loc.role, name=loc.name)  # type: ignore[arg-type]
-            if await cand.count() > 0 and await cand.first.is_visible():
-                return cand.first
-        except Exception:
-            pass
-        if loc.name:
-            try:
-                cand = page.get_by_role(loc.role, name=re.compile(re.escape(loc.name), re.IGNORECASE))  # type: ignore[arg-type]
-                if await cand.count() > 0 and await cand.first.is_visible():
-                    return cand.first
-            except Exception:
-                pass
+        for target in (loc.name, loc.label):
+            if target:
+                try:
+                    cand = page.get_by_role(loc.role, name=target, exact=True)  # type: ignore[arg-type]
+                    if await cand.count() > 0 and await cand.first.is_visible():
+                        return cand.first
+                except Exception:
+                    pass
+        for target in (loc.name, loc.label):
+            if target:
+                try:
+                    cand = page.get_by_role(loc.role, name=re.compile(re.escape(target), re.IGNORECASE))  # type: ignore[arg-type]
+                    if await cand.count() > 0 and await cand.first.is_visible():
+                        return cand.first
+                except Exception:
+                    pass
 
     # 3. Label
     if loc.label:
@@ -82,7 +85,16 @@ async def execute(page: Page, action: Action, timeout_ms: int = 5000) -> Tuple[b
         if action.kind == ActionKind.GOTO:
             if not action.value:
                 return False, "not_executable: goto action missing URL value"
-            await page.goto(action.value, timeout=timeout_ms, wait_until="load")
+            target_url = action.value
+            if not target_url.startswith("http://") and not target_url.startswith("https://"):
+                from urllib.parse import urljoin
+                cur = page.url
+                if cur and cur != "about:blank":
+                    target_url = urljoin(cur, target_url)
+            if page.url.rstrip("/") == target_url.rstrip("/"):
+                await page.reload(timeout=timeout_ms, wait_until="domcontentloaded")
+            else:
+                await page.goto(target_url, timeout=timeout_ms, wait_until="domcontentloaded")
             return True, None
 
         if action.kind == ActionKind.WAIT:
@@ -99,8 +111,17 @@ async def execute(page: Page, action: Action, timeout_ms: int = 5000) -> Tuple[b
         if action.kind == ActionKind.CLICK:
             burst_count = getattr(action, "burst", 1) or 1
             if burst_count > 1:
-                tasks = [element.click(timeout=timeout_ms, force=True) for _ in range(burst_count)]
-                await asyncio.gather(*tasks, return_exceptions=True)
+                for _ in range(burst_count):
+                    try:
+                        await element.click(timeout=1500, force=True)
+                    except Exception:
+                        el = await resolve_element(page, action.locator, timeout_ms=1000)
+                        if el:
+                            try:
+                                await el.click(timeout=1500, force=True)
+                            except Exception:
+                                pass
+                    await asyncio.sleep(0.05)
             else:
                 await element.click(timeout=timeout_ms)
             return True, None

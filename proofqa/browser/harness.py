@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
@@ -83,6 +84,7 @@ class BrowserHarness:
         await self.context.add_init_script(DETERMINISTIC_INIT_SCRIPT)
 
         self.page = await self.context.new_page()
+        self.page.on("dialog", lambda dialog: asyncio.create_task(dialog.dismiss()))
         return self.context, self.page
 
     async def close(self) -> None:

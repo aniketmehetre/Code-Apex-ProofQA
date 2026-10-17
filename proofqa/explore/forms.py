@@ -183,22 +183,39 @@ def extract_form_plans(grounded_controls: list[Action]) -> list[FormPlan]:
         elif act.kind == ActionKind.CLICK and act.locator:
             name = (act.locator.name or "").strip().lower()
             role = (act.locator.role or "").strip().lower()
+            label = (act.locator.label or "").strip().lower()
             testid = (act.locator.testid or "").strip().lower()
-            if any(term in name or term in testid for term in ["submit", "register", "login", "confirm", "add to cart", "apply"]):
+            text = f"{name} {label} {testid}"
+            if any(term in text for term in ["submit", "register", "login", "confirm", "add to cart", "apply"]):
                 submits.append(act)
-            elif role == "button" and any(term in name for term in ["save", "checkout", "search", "update"]):
+            elif role == "button" and any(term in text for term in ["save", "checkout", "search", "update"]):
                 submits.append(act)
 
     if not inputs:
         return []
 
-    # If we have submit buttons, pair inputs with submit button
     plans: list[FormPlan] = []
-    if submits:
-        for s in submits:
-            plans.append(FormPlan(fields=list(inputs), submit_control=s))
-    else:
-        # Standalone inputs without an explicit submit button
-        plans.append(FormPlan(fields=list(inputs), submit_control=None))
+    # Specialized pairing: if search input is present, pair with search submit button
+    search_inputs = [i for i in inputs if i.locator and "search" in f"{i.locator.name or ''} {i.locator.label or ''} {i.locator.role or ''}".lower()]
+    search_submits = [s for s in submits if s.locator and "search" in f"{s.locator.name or ''} {s.locator.label or ''}".lower()]
+    if search_inputs and search_submits:
+        plans.append(FormPlan(fields=search_inputs, submit_control=search_submits[0]))
+        inputs = [i for i in inputs if i not in search_inputs]
+        submits = [s for s in submits if s not in search_submits]
+
+    # Modal / Quantity pairing: if quantity input is present, pair with confirm / modal add-to-cart
+    qty_inputs = [i for i in inputs if i.locator and "quantity" in f"{i.locator.name or ''} {i.locator.label or ''}".lower()]
+    qty_submits = [s for s in submits if s.locator and any(t in f"{s.locator.name or ''} {s.locator.label or ''} {s.locator.testid or ''}".lower() for t in ["modal", "confirm", "add to cart"])]
+    if qty_inputs and qty_submits:
+        plans.append(FormPlan(fields=qty_inputs, submit_control=qty_submits[0]))
+        inputs = [i for i in inputs if i not in qty_inputs]
+        submits = [s for s in submits if s not in qty_submits]
+
+    if inputs:
+        if submits:
+            for s in submits:
+                plans.append(FormPlan(fields=list(inputs), submit_control=s))
+        else:
+            plans.append(FormPlan(fields=list(inputs), submit_control=None))
 
     return plans

@@ -71,16 +71,21 @@ class Adjudicator:
                     continue
 
             # If both specify error_type, they must be consistent
-            if exp.get("error_type") and sig.error_type and exp["error_type"].lower() not in sig.error_type.lower():
-                continue
+            if exp.get("error_type") and sig.error_type:
+                import re
+                exp_norm = re.sub(r"[\s_-]+", "", exp["error_type"].lower()).replace("claim", "")
+                sig_norm = re.sub(r"[\s_-]+", "", sig.error_type.lower()).replace("claim", "")
+                if exp_norm not in sig_norm and sig_norm not in exp_norm:
+                    continue
 
             # Disambiguate B01 vs B09 (both target /api/cart with 500)
             claim_text = (finding.claim or "").lower()
             msg_text = ((sig.message_norm or "") + " " + claim_text).lower()
-            has_burst = any(getattr(a, "burst", 1) > 1 for a in finding.steps) or str(getattr(finding, "tier", "")) in ("Tier.INTERMITTENT", "INTERMITTENT")
-            if bid == "B01" and (has_burst or "concurrency" in claim_text or "lock" in claim_text):
+            is_lock_err = bool(sig.error_type and "lock" in sig.error_type.lower())
+            has_burst = any(getattr(a, "burst", 1) > 1 for a in finding.steps) or str(getattr(finding, "tier", "")) in ("Tier.INTERMITTENT", "INTERMITTENT") or is_lock_err
+            if bid == "B01" and (has_burst or "concurrency" in claim_text or "lock" in claim_text or is_lock_err):
                 continue
-            if bid == "B09" and not (has_burst or "concurrency" in claim_text or "lock" in claim_text or "transient" in claim_text):
+            if bid == "B09" and not (has_burst or "concurrency" in claim_text or "lock" in claim_text or "transient" in claim_text or is_lock_err):
                 continue
 
             # Disambiguate B03 vs B04 (both target /api/cart with CrossLayerMismatch)

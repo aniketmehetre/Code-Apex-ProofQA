@@ -186,6 +186,14 @@ class RuleBasedExplorer:
                 self.archive.add_or_update(sem_state.key, [], candidates)
 
             probe_queue: list[Action] = []
+            remaining_journeys: list[tuple[str, list[Action]]] = []
+            current_journey_steps: list[Action] = []
+            is_executing_journey: bool = False
+            if self.level in ("rules_probes_goexplore", "full"):
+                from proofqa.explore.journeys import get_canonical_journeys
+                tokens = self.token_pool.get_tokens()
+                promo_token = "SAVE10" if "SAVE10" in tokens else next((t for t in tokens if "SAVE" in t.upper() or "PROMO" in t.upper() or "DISCOUNT" in t.upper()), "SAVE10")
+                remaining_journeys = get_canonical_journeys(token=promo_token, seed=self.seed)
 
             while steps < self.budget_steps and (time.time() - start_time) < self.budget_time_seconds:
                 # ---------------- MONKEY LEVEL ----------------
@@ -215,15 +223,47 @@ class RuleBasedExplorer:
 
                 # ---------------- RULES & PROBES LEVELS ----------------
                 else:
+                    selected_action = None
                     if probe_queue:
                         cand_action = probe_queue.pop(0)
                         grounded_probe = ground_action(cand_action, candidates)
+                        if grounded_probe is None:
+                            await asyncio.sleep(0.3)
+                            fresh_cands = await extract_candidate_actions(page, origin=self.world.url)
+                            if fresh_cands:
+                                candidates = fresh_cands
+                                grounded_probe = ground_action(cand_action, candidates)
+
                         if grounded_probe is not None:
                             selected_action = grounded_probe
                         else:
                             probe_queue.clear()
+                            is_executing_journey = False
+                            current_journey_steps.clear()
                             selected_action = None
-                    else:
+
+                    if selected_action is None and remaining_journeys and self.level in ("rules_probes_goexplore", "full"):
+                        journey_name, j_actions = remaining_journeys.pop(0)
+                        current_journey_steps.clear()
+                        is_executing_journey = True
+                        if j_actions:
+                            cand_act = j_actions[0]
+                            g = ground_action(cand_act, candidates)
+                            if g is None:
+                                await asyncio.sleep(0.3)
+                                fresh_cands = await extract_candidate_actions(page, origin=self.world.url)
+                                if fresh_cands:
+                                    candidates = fresh_cands
+                                    g = ground_action(cand_act, candidates)
+                            if g is not None:
+                                selected_action = g
+                                probe_queue.extend(j_actions[1:])
+                            else:
+                                probe_queue.clear()
+                                is_executing_journey = False
+                                current_journey_steps.clear()
+
+                    if selected_action is None:
                         # Check for loop / trap conditions & per-path state cap
                         is_trap = self._is_trap(fp.url_path)
                         visit_count = self.graph.graph.nodes[current_state_id]["visit_count"]
@@ -272,6 +312,8 @@ class RuleBasedExplorer:
 
                         # If no untried actions in current state or depth exceeded, backtrack via graph!
                         if not untried_actions or current_depth >= self.budget_depth:
+                            if remaining_journeys or probe_queue:
+                                continue
                             nearest = self.graph.find_nearest_state_with_untried(current_state_id)
                             if not nearest:
                                 # Full graph exhausted within budgets
@@ -301,6 +343,8 @@ class RuleBasedExplorer:
                             untried_actions = self.graph.get_untried_actions(current_state_id)
                             candidates = await extract_candidate_actions(page, origin=self.world.url)
                             if not untried_actions:
+                                if remaining_journeys or probe_queue:
+                                    continue
                                 break
 
                         selected_action = None
@@ -397,17 +441,30 @@ class RuleBasedExplorer:
                     dest = selected_action.value or "/"
                     dest_url = dest if dest.startswith("http") else f"{self.world.url.rstrip('/')}{dest}"
                     try:
-                        await page.goto(dest_url, wait_until="domcontentloaded", timeout=10000)
+                        if page.url.rstrip("/") == dest_url.rstrip("/"):
+                            await page.reload(wait_until="domcontentloaded", timeout=10000)
+                        else:
+                            await page.goto(dest_url, wait_until="domcontentloaded", timeout=10000)
+                        try:
+                            await page.wait_for_selector(".product-card, .btn-primary, button, input", timeout=1500)
+                        except Exception:
+                            pass
                     except Exception:
                         pass
                 else:
                     exec_ok, _ = await execute(page, selected_action)
                     if not exec_ok:
                         probe_queue.clear()
+                        is_executing_journey = False
+                        current_journey_steps.clear()
 
                 await asyncio.sleep(0.3)
                 recorder.record_action(selected_action, duration_ms=(time.time() - step_start) * 1000)
                 self.action_history.append(selected_action)
+                if is_executing_journey:
+                    current_journey_steps.append(selected_action)
+                    if not probe_queue:
+                        is_executing_journey = False
 
                 # Observe resulting state
                 new_fp = await get_page_fingerprint(page)
@@ -434,19 +491,23 @@ class RuleBasedExplorer:
                         self.archive.record_action_tried(new_sem_state.key, selected_action.id)
 
                 # Notify oracle hooks
+                active_history = list(current_journey_steps) if current_journey_steps else list(self.action_history)
                 for hook in self.hooks:
-                    hook(new_fp, selected_action, recorder.events[-6:], list(self.action_history))
+                    hook(new_fp, selected_action, recorder.events[-6:], active_history)
 
                 for ahook in self.async_hooks:
                     try:
-                        await ahook(page, new_fp, selected_action, recorder.events[-6:], list(self.action_history), recorder.last_api_responses)
+                        await ahook(page, new_fp, selected_action, recorder.events[-6:], active_history, recorder.last_api_responses)
                     except Exception:
                         pass
 
                 current_state_id = new_state_id
                 fp = new_fp
                 candidates = new_candidates
-                current_depth += 1
+                if selected_action.kind == ActionKind.GOTO and (selected_action.value in ("/", "") or str(selected_action.value).endswith("/")):
+                    current_depth = 0
+                else:
+                    current_depth += 1
                 steps += 1
 
             await recorder.flush()
