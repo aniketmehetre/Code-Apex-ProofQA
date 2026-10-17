@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import time
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,7 @@ class TapeRecorder:
         self.screenshots_dir = self.output_dir / "screenshots"
         self.tape_path = self.output_dir / "tape.jsonl"
         self.events: list[TapeEvent] = []
+        self.last_api_responses: dict[str, Any] = {}
         self._pending_tasks: set[asyncio.Task[Any]] = set()
 
         self._ensure_directories()
@@ -158,6 +160,13 @@ class TapeRecorder:
                     blob_path = self.blob_dir / blob_ref
                     if not blob_path.exists():
                         blob_path.write_bytes(body)
+                    if is_first_party:
+                        try:
+                            parsed_json = json.loads(body.decode("utf-8"))
+                            parsed_path = urlparse(url).path
+                            self.last_api_responses[parsed_path] = parsed_json
+                        except Exception:
+                            pass
         except Exception:
             pass
 

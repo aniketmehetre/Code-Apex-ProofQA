@@ -20,19 +20,6 @@
     "params": {}
   },
   {
-    "id": "s2",
-    "kind": "fill",
-    "locator": {
-      "role": "spinbutton",
-      "name": "Quantity",
-      "label": "Quantity",
-      "testid": null,
-      "css_fallback": null
-    },
-    "value": "0",
-    "params": {}
-  },
-  {
     "id": "s3",
     "kind": "click",
     "locator": {

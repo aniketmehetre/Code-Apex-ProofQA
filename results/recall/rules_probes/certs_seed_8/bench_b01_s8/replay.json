@@ -6,7 +6,7 @@
   "reproduced": true,
   "reproduction_rate": 1.0,
   "evidence_refs": [
-    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmp4klljwzn\\screenshots\\failure.png"
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmp_cx_i26i\\screenshots\\failure.png"
   ],
   "runs": [
     {
@@ -21,7 +21,7 @@
         "message_norm": "HTTP <NUM> on /api/cart",
         "top_frame": null
       },
-      "wall_time_ms": 5174.22890663147,
+      "wall_time_ms": 4078.29213142395,
       "attempt_log": [
         {
           "step": 0,

@@ -118,8 +118,9 @@ class CrossLayerOracle:
                 finding = None
                 if mismatch:
                     sig = FailureSignature(
-                        kind="cross_layer_mismatch",
+                        kind="ui_mismatch",
                         first_party_endpoint="/api/cart",
+                        error_type="CrossLayerMismatch",
                         message_norm=normalize_message(
                             f"CrossLayerMismatch: cart_badge_count UI shows {ui_val} but API item_count is {api_count}"
                         ),
@@ -157,8 +158,9 @@ class CrossLayerOracle:
                 finding = None
                 if mismatch:
                     sig = FailureSignature(
-                        kind="cross_layer_mismatch",
+                        kind="ui_mismatch",
                         first_party_endpoint="/api/cart",
+                        error_type="CrossLayerMismatch",
                         message_norm=normalize_message(
                             f"CrossLayerMismatch: cart_total UI displays ${ui_val:.2f} but API total is ${float(api_total):.2f}"
                         ),

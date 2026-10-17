@@ -24,7 +24,11 @@ from proofqa.explore.grounding import ground_action, sanitize_input_value
 from proofqa.explore.inputs import get_field_input
 from proofqa.explore.probes.base import ProbeContext
 from proofqa.explore.probes.boundary import BoundaryProbe
+from proofqa.explore.probes.inverse import InversePairProbe
+from proofqa.explore.probes.pairwise import PairwiseProbe
 from proofqa.explore.probes.registry import ProbeRegistry
+from proofqa.explore.probes.reload import ReloadProbe
+from proofqa.explore.probes.revert import RevertProbe
 from proofqa.explore.state_graph import StateGraph
 from proofqa.explore.tokens import TokenPool
 from proofqa.spec.facts import SpecFactStore
@@ -101,11 +105,17 @@ class RuleBasedExplorer:
         self.probe_registry = probe_registry or ProbeRegistry(per_probe_budget=self.config.per_probe_budget)
         if self.level in ("rules_probes", "rules_probes_goexplore", "full"):
             self.probe_registry.register(BoundaryProbe())
+            self.probe_registry.register(RevertProbe())
+            self.probe_registry.register(ReloadProbe())
+            self.probe_registry.register(InversePairProbe())
+            self.probe_registry.register(PairwiseProbe())
 
         self.graph = StateGraph(self.sqlite_path)
         self.hooks: list[Callable[[StateFingerprint, Action, list[TapeEvent], list[Action]], None]] = []
+        self.async_hooks: list[Callable[[Any, StateFingerprint, Action, list[TapeEvent], list[Action], dict[str, Any]], Any]] = []
         self.candidates: list[CandidateFinding] = []
         self.action_history: list[Action] = []
+        self.recorder: TapeRecorder | None = None
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -115,6 +125,13 @@ class RuleBasedExplorer:
     ) -> None:
         """Registers a hook invoked after every step to detect oracle violations."""
         self.hooks.append(hook)
+
+    def add_async_oracle_hook(
+        self,
+        hook: Callable[[Any, StateFingerprint, Action, list[TapeEvent], list[Action], dict[str, Any]], Any],
+    ) -> None:
+        """Registers an async hook invoked after every transition to detect cross-layer or DOM violations."""
+        self.async_hooks.append(hook)
 
     def _is_trap(self, url_path: str) -> bool:
         """Detects adversarial trap pages designed to trap web agents."""
@@ -133,6 +150,7 @@ class RuleBasedExplorer:
         async with harness:
             context, page = await harness.new_context()
             recorder.attach(page)
+            self.recorder = recorder
 
             # 1. Initialize root state at "/"
             await page.goto(f"{self.world.url.rstrip('/')}/", wait_until="domcontentloaded", timeout=10000)
@@ -333,7 +351,13 @@ class RuleBasedExplorer:
 
                 # Notify oracle hooks
                 for hook in self.hooks:
-                    hook(new_fp, selected_action, recorder.events[-4:], list(self.action_history))
+                    hook(new_fp, selected_action, recorder.events[-6:], list(self.action_history))
+
+                for ahook in self.async_hooks:
+                    try:
+                        await ahook(page, new_fp, selected_action, recorder.events[-6:], list(self.action_history), recorder.last_api_responses)
+                    except Exception:
+                        pass
 
                 current_state_id = new_state_id
                 fp = new_fp

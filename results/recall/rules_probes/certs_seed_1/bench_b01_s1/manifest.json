@@ -1,16 +1,16 @@
 {
   "certificate_id": "bench_b01_s1",
   "finding_id": "bench_b01_s1",
-  "created_at": "2026-10-17T09:47:11.609983+00:00",
+  "created_at": "2026-10-17T10:10:29.650893+00:00",
   "contracts_version": "1",
   "files": {
     "claim.json": "43af7ba6af0328285b612432e12a152bafa23c3ef69dd68dff1a08f63bc0ebd8",
     "evidence/console.log": "998ad5955277ab34eae4fba7750ba74dacad8949d67afb9ea1330421349e003f",
     "limits.md": "418115f000177ef256fe5f8aecc53bc0c7b4c26abb1d17e91c425df091dbc734",
-    "replay.json": "23eaf57cb4f76901673b1762d545bdbb7f3327964a3d62635b8a8299b7b7588b",
-    "repro.json": "6d794d1623f4db71de90dcdd9bc12a8057293ee9b6e96f6533ce620ac4bb4b7e",
+    "replay.json": "51afa58b5ee3c37dbddbcd4e3fed313f5bc942455d942dbd339b3866cd11c6e0",
+    "repro.json": "676d88571cfb1c6a20cf1f24ae0e16af3450e6c14b92e75193608d7d797b22ef",
     "signature.json": "c06d14667a6cd1725590fa797df4ae9a7149bd0c31c1fcc509c29b32e214f61a",
     "world.json": "082e941364bd19f4eaba24d9af01efe8fe7151609a5b93c61268f416244e6224"
   },
-  "manifest_hash": "79e6c2e9edf0d1706b6a06c948f200d927efb4ddd7078cb76bdcae3fdd222f59"
+  "manifest_hash": "88f1476dee30d5b03681fa3f0270017d28206269b8413435d84c9b4e6c14dfcd"
 }

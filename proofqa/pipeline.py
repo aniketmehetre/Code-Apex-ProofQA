@@ -22,7 +22,9 @@ from proofqa.contracts import (
     WorldSpec,
 )
 from proofqa.explore.explorer import RuleBasedExplorer
+from proofqa.oracles.cross_layer import CrossLayerOracle
 from proofqa.oracles.hard_signals import HardSignalsOracle
+from proofqa.oracles.relations.tape_oracle import MetamorphicOracle
 from proofqa.oracles.spec_claims import SpecClaimsOracle
 from proofqa.proof.replay import replay
 from proofqa.proof.shrink import shrink
@@ -120,10 +122,28 @@ class Pipeline:
             explorer.add_oracle_hook(hard_signals.hook)
             spec_claims = SpecClaimsOracle(offline=True, fact_store=explorer.spec_facts)
             explorer.add_oracle_hook(spec_claims.hook)
+            metamorphic = MetamorphicOracle()
+            explorer.add_oracle_hook(metamorphic.hook)
+
+            cross_layer = CrossLayerOracle()
+
+            async def cross_layer_hook(page: Any, fp: Any, action: Any, events: Any, history: Any, api_responses: Any) -> None:
+                cl_results = await cross_layer.verify_consistency(page, api_responses, history)
+                if explorer.recorder:
+                    for ev, _ in cl_results:
+                        if ev:
+                            explorer.recorder.record_ui_fact(ev.label, ev.ui_value, ev.api_value, ev.api_ref)
+
+            explorer.add_async_oracle_hook(cross_layer_hook)
 
             await self.event_bus.emit("stage_explore_started", {"budget": step_budget})
             explore_result = await explorer.explore()
-            discovered = list(hard_signals.candidates) + list(spec_claims.candidates)
+            discovered = (
+                list(hard_signals.candidates)
+                + list(spec_claims.candidates)
+                + list(cross_layer.candidates)
+                + list(metamorphic.candidates)
+            )
             candidates = list(initial_candidates or []) + discovered
 
             self.last_request_log = list(world.request_log)
