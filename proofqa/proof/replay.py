@@ -205,9 +205,9 @@ async def _run_single_replay(
 
                 elif target_signature.kind in ("relation_violation", "metamorphic"):
                     from proofqa.oracles.relations import (
-                        SortRestorationRelation,
-                        CategoryFilterRelation,
                         AddressPersistenceRelation,
+                        CategoryFilterRelation,
+                        SortRestorationRelation,
                     )
                     from proofqa.oracles.relations.tape_oracle import MetamorphicOracle
                     meta = MetamorphicOracle()

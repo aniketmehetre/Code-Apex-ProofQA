@@ -216,7 +216,13 @@ class RuleBasedExplorer:
                 # ---------------- RULES & PROBES LEVELS ----------------
                 else:
                     if probe_queue:
-                        selected_action = probe_queue.pop(0)
+                        cand_action = probe_queue.pop(0)
+                        grounded_probe = ground_action(cand_action, candidates)
+                        if grounded_probe is not None:
+                            selected_action = grounded_probe
+                        else:
+                            probe_queue.clear()
+                            selected_action = None
                     else:
                         # Check for loop / trap conditions & per-path state cap
                         is_trap = self._is_trap(fp.url_path)
@@ -324,7 +330,7 @@ class RuleBasedExplorer:
                                 )
                                 probe_acts = self.probe_registry.run_applicable_probes(
                                     ctx,
-                                    max_probes_per_page=self.config.per_page_probe_cap,
+                                    max_probes_per_page=1,
                                 )
                                 if probe_acts:
                                     selected_action = probe_acts[0]
@@ -395,7 +401,9 @@ class RuleBasedExplorer:
                     except Exception:
                         pass
                 else:
-                    await execute(page, selected_action)
+                    exec_ok, _ = await execute(page, selected_action)
+                    if not exec_ok:
+                        probe_queue.clear()
 
                 await asyncio.sleep(0.3)
                 recorder.record_action(selected_action, duration_ms=(time.time() - step_start) * 1000)

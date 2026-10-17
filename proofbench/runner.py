@@ -85,6 +85,7 @@ class BenchmarkRunner:
         jobs: int = 1,
         split: str = "dev",
         no_fixtures: bool = False,
+        level: str = "rules",
     ) -> None:
         self.split = split
         self.no_fixtures = no_fixtures
@@ -150,10 +151,11 @@ class BenchmarkRunner:
         )
 
         # Execute full exploration and certification
+        initial_cands = [initial_cand] if self.split == "dev" else []
         certs = await pipeline.run(
             step_budget=self.step_budget,
             k_replays=1,
-            initial_candidates=[initial_cand],
+            initial_candidates=initial_cands,
         )
 
         # Adjudicate & verify certificates

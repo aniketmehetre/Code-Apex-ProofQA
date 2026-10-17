@@ -24,7 +24,6 @@ from proofqa.contracts import (
     UiFactEvent,
 )
 
-
 GLOBAL_BLOB_CACHE: dict[str, Any] = {}
 
 

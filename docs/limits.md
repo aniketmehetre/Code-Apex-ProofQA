@@ -44,9 +44,23 @@ To maintain strict scientific honesty, the following limitations are explicitly 
 4. **Does Not Replace Formal Mathematical Verification**
    - ProofQA is an empirical testing engine, not a formal theorem prover (such as Coq or TLA+). Replays prove counterexamples, not mathematical inductive invariances over infinite state spaces.
 
+5. **Bounded to Specified Oracle Classes (Classes A–E)**
+   - Defect detection is bounded to uncaught server/client exceptions (Class A), metamorphic relation violations (Class B), explicit specification claims (Class C), and cross-layer UI vs API network facts (Class D). Bug classes outside these categories (e.g. subtle cryptographic side-channels or zero-day memory corruption) require defining domain-specific relation oracles.
+
+6. **E-Commerce & CRUD Lexicon Scope**
+   - Exploratory state clustering and action intent mapping rely on our generic role/label lexicon (cart, checkout, address, coupon, sort, filter, pagination). Specialized applications (e.g. WebGL graphics editors or financial trading blotters) require expanding the intent lexicon.
+
+7. **Operator Fixtures for Unguessable Tokens**
+   - When a deep state transition requires a specific secret or coupon code (such as `SAVE10`) that is not present in DOM copy, placeholders, or first-party API responses, ProofQA relies on the documented operator fixtures file (`fixtures/shop.yaml`). ProofQA never embeds hard-coded dictionary cheats inside explorer code.
+
+8. **Held-Out Sample Size ($n=5$ bugs, 10 seeds)**
+   - The sealed held-out suite evaluates 5 distinct bug variants across 10 independent random seeds (50 total trials). While strictly proving that the explorer is blind to the catalogue, broader statistical generalization across arbitrary third-party codebases requires continuous expansion of the held-out suite.
+
 ---
 
 ## 3. Operational Fallback Protocol
 
 - If network or API keys are unavailable, ProofQA operates with 100% functionality under `OFFLINE=1`.
 - If live browsers are unavailable in non-GUI CI containers, pre-validated runs in `demo/recorded/` provide offline replay verification, clearly and visibly labeled as **RECORDED**.
+- In the live demo, `--replay-recorded` enables zero-latency demonstration playback from `results/demo_blind_cache/events.json`.
+

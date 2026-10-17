@@ -75,6 +75,9 @@ def signatures_match(target: FailureSignature, observed: FailureSignature) -> bo
                 and observed.message_norm not in target.message_norm
             ):
                 return False
+    return True
+
+
 async def _verify_standalone_cross_layer(page: Any, api_responses: dict[str, Any], target_sig: FailureSignature) -> FailureSignature | None:
     """Standalone cross-layer UI vs API consistency verification without external oracle imports."""
     import re
