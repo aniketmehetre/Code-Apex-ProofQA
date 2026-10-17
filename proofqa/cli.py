@@ -80,6 +80,23 @@ def verify(
 
 
 @app.command()
+def report(
+    path: str = typer.Argument(..., help="Path to certificate directory"),
+    out: Optional[str] = typer.Option(None, "--out", help="Output report file path"),
+) -> None:
+    """Generate human-readable report.md outside the certificate directory."""
+    from proofqa.cert.report import generate_certificate_report
+
+    try:
+        generate_certificate_report(cert_path=path, output_path=out)
+        out_dest = out or str(Path(path).parent / f"{Path(path).name}_report.md")
+        typer.secho(f"[+] Report generated successfully at {out_dest}", fg=typer.colors.GREEN, bold=True)
+    except Exception as exc:
+        typer.secho(f"[-] Failed to generate report: {exc}", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def dashboard(
     port: int = typer.Option(8000, "--port", help="Port to serve the control plane and dashboard"),
     host: str = typer.Option("127.0.0.1", "--host", help="Host interface"),

@@ -266,6 +266,41 @@ def create_app() -> FastAPI:
             headers={"Content-Disposition": f'attachment; filename="{cert_id}.zip"'},
         )
 
+    @app.get("/certificates/{cert_id}/report")
+    async def get_certificate_report(cert_id: str, download: bool = False) -> Response:
+        """Render or download report.md for given certificate directory (Prompt 9)."""
+        from proofqa.cert.report import generate_certificate_report
+
+        target_dir: Path | None = None
+        candidates = [
+            Path("results/certificates") / cert_id,
+            Path("results") / cert_id,
+            Path("demo/recorded") / cert_id,
+        ]
+        for c in candidates:
+            if c.exists() and (c / "manifest.json").exists():
+                target_dir = c
+                break
+
+        if not target_dir:
+            for p in list(Path("results").rglob("manifest.json")) + list(Path("demo").rglob("manifest.json")):
+                if p.parent.name == cert_id or cert_id in str(p.parent):
+                    target_dir = p.parent
+                    break
+
+        if not target_dir or not target_dir.exists():
+            raise HTTPException(status_code=404, detail=f"Certificate {cert_id} not found")
+
+        report_md = generate_certificate_report(target_dir)
+
+        if download:
+            return Response(
+                content=report_md.encode("utf-8"),
+                media_type="text/markdown",
+                headers={"Content-Disposition": f'attachment; filename="{cert_id}_report.md"'},
+            )
+        return Response(content=report_md, media_type="text/markdown")
+
     @app.post("/race")
     async def start_race(req: RaceRequest) -> dict[str, Any]:
         """Runs ProofQA and Monkey baseline concurrently on the same world and streams updates."""
