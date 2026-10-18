@@ -1,0 +1,16 @@
+{
+  "certificate_id": "finding_A_d970d8f2",
+  "finding_id": "finding_A_d970d8f2",
+  "created_at": "2026-10-17T21:43:57.469395+00:00",
+  "contracts_version": "1.1",
+  "files": {
+    "claim.json": "5c5709d1870e2970e6aac4376660bdb5f01fcac7a315180cfbff700476de09c6",
+    "evidence/console.log": "d0c4c40c3541d4e91780828abe4663d0b669f4cc5bbbcbcd253eca2ab70251af",
+    "limits.md": "418115f000177ef256fe5f8aecc53bc0c7b4c26abb1d17e91c425df091dbc734",
+    "replay.json": "66977945a76f438b352f507b10c364051d92db2f1d1f6bb1073bafffe70bc924",
+    "repro.json": "a93e2476de0610134c3f018cb94d02fff05e10882a9643fd7512ff521b6a4374",
+    "signature.json": "0be39f3d553947631cbad7ca28e68c81496cc5b55fd768a81cfa3906b3189311",
+    "world.json": "082e941364bd19f4eaba24d9af01efe8fe7151609a5b93c61268f416244e6224"
+  },
+  "manifest_hash": "1588e4dd16b544e37516cd9dccad84230839300ccf162f3ca87e662d4750bd5f"
+}

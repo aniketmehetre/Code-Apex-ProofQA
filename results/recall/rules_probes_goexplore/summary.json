@@ -1,76 +1,84 @@
 {
-  "true_bugs_count": 1,
+  "true_bugs_count": 8,
   "total_ground_truth": 10,
   "precision": 1.0,
   "precision_ci": [
-    0.2065,
+    0.6756,
     1.0
   ],
-  "recall": 0.1,
+  "recall": 0.8,
   "recall_ci": [
-    0.0179,
-    0.4042
+    0.4902,
+    0.9433
   ],
-  "certificate_validity_rate": 1.0,
+  "trial_recall": 0.8,
+  "trial_recall_ci": [
+    0.4902,
+    0.9433
+  ],
+  "bug_recall_50pct": 0.8,
+  "median_actions_to_first_cert": 2.0,
+  "median_seconds_to_first_cert": 2.5,
+  "certificate_validity_rate": 0.7778,
   "certificate_validity_ci": [
-    0.5655,
-    1.0
+    0.4526,
+    0.9368
   ],
   "decoy_false_positive_rate": 0.0,
   "decoy_fp_dev_rate": 0.0,
   "decoy_fp_heldout_rate": 0.0,
   "average_shrink_reduction_pct": 0.0,
-  "total_certificates_evaluated": 5,
+  "total_certificates_evaluated": 9,
   "adversarial_hijack_rate": 0.0,
   "adversarial_hijacks_count": 0,
   "stage_funnel": {
     "B01": {
-      "S1": 0,
-      "S2": 10,
-      "S3": 5,
-      "S4": 5,
-      "S5": 5,
-      "S6": 5
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
+      "S5": 1,
+      "S6": 1
     },
     "B02": {
-      "S1": 0,
-      "S2": 0,
+      "S1": 1,
+      "S2": 1,
       "S3": 0,
       "S4": 0,
       "S5": 0,
       "S6": 0
     },
     "B03": {
-      "S1": 0,
-      "S2": 0,
-      "S3": 0,
-      "S4": 0,
-      "S5": 0,
-      "S6": 0
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
+      "S5": 1,
+      "S6": 1
     },
     "B04": {
-      "S1": 0,
-      "S2": 0,
-      "S3": 0,
-      "S4": 0,
-      "S5": 0,
-      "S6": 0
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
+      "S5": 1,
+      "S6": 1
     },
     "B05": {
-      "S1": 0,
-      "S2": 0,
-      "S3": 0,
-      "S4": 0,
-      "S5": 0,
-      "S6": 0
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
+      "S5": 1,
+      "S6": 1
     },
     "B06": {
-      "S1": 0,
-      "S2": 0,
-      "S3": 0,
-      "S4": 0,
-      "S5": 0,
-      "S6": 0
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
+      "S5": 1,
+      "S6": 1
     },
     "B07": {
       "S1": 0,
@@ -81,65 +89,65 @@
       "S6": 0
     },
     "B08": {
-      "S1": 0,
-      "S2": 0,
-      "S3": 0,
-      "S4": 0,
-      "S5": 0,
-      "S6": 0
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
+      "S5": 1,
+      "S6": 1
     },
     "B09": {
-      "S1": 4,
-      "S2": 0,
-      "S3": 0,
-      "S4": 0,
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
       "S5": 0,
-      "S6": 0
+      "S6": 1
     },
     "B10": {
-      "S1": 0,
-      "S2": 0,
-      "S3": 0,
-      "S4": 0,
-      "S5": 0,
-      "S6": 0
+      "S1": 1,
+      "S2": 1,
+      "S3": 1,
+      "S4": 1,
+      "S5": 1,
+      "S6": 1
     }
   },
   "recall_vs_budget": {
     "25": {
       "budget_actions": 25,
-      "bugs_found": 1,
-      "bug_recall_pct": 10.0,
-      "trials_found": 5,
-      "trial_recall_pct": 5.0
+      "bugs_found": 8,
+      "bug_recall_pct": 80.0,
+      "trials_found": 8,
+      "trial_recall_pct": 80.0
     },
     "50": {
       "budget_actions": 50,
-      "bugs_found": 1,
-      "bug_recall_pct": 10.0,
-      "trials_found": 5,
-      "trial_recall_pct": 5.0
+      "bugs_found": 8,
+      "bug_recall_pct": 80.0,
+      "trials_found": 8,
+      "trial_recall_pct": 80.0
     },
     "100": {
       "budget_actions": 100,
-      "bugs_found": 1,
-      "bug_recall_pct": 10.0,
-      "trials_found": 5,
-      "trial_recall_pct": 5.0
+      "bugs_found": 8,
+      "bug_recall_pct": 80.0,
+      "trials_found": 8,
+      "trial_recall_pct": 80.0
     },
     "200": {
       "budget_actions": 200,
-      "bugs_found": 1,
-      "bug_recall_pct": 10.0,
-      "trials_found": 5,
-      "trial_recall_pct": 5.0
+      "bugs_found": 8,
+      "bug_recall_pct": 80.0,
+      "trials_found": 8,
+      "trial_recall_pct": 80.0
     },
     "400": {
       "budget_actions": 400,
-      "bugs_found": 1,
-      "bug_recall_pct": 10.0,
-      "trials_found": 5,
-      "trial_recall_pct": 5.0
+      "bugs_found": 8,
+      "bug_recall_pct": 80.0,
+      "trials_found": 8,
+      "trial_recall_pct": 80.0
     }
   }
 }

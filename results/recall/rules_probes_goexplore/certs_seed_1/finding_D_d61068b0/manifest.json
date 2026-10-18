@@ -1,0 +1,16 @@
+{
+  "certificate_id": "finding_D_d61068b0",
+  "finding_id": "finding_D_d61068b0",
+  "created_at": "2026-10-17T21:45:40.918466+00:00",
+  "contracts_version": "1.1",
+  "files": {
+    "claim.json": "5b55c5d30c6ef3c280a8b9dbeb9647e5d4a5631e4ad0caed2d37140e2da14108",
+    "evidence/console.log": "752d6b4c7930074aeff2629084517ef3e1c9841f0cd4e3414d72dcb1e8409987",
+    "limits.md": "7e8ab66b3f2ed9cf8272ed57fe2e59ff7144aed49952d17b9793582a9a6189ad",
+    "replay.json": "eebbe50949a10096b3e8312a4145f66e389986fec7e4f1099f18ecd24fae4a1a",
+    "repro.json": "4065d3495b0c9974d70c410242d1a1e5beaf3d5e8e1eb87f2067273ad3eb6acb",
+    "signature.json": "f48baa081dd0db041ce503885277ef8f49ec6e465d8371b0ad0b973f6a540719",
+    "world.json": "082e941364bd19f4eaba24d9af01efe8fe7151609a5b93c61268f416244e6224"
+  },
+  "manifest_hash": "9c0404f6f8e0d6c728cd35a55b78ca16161ec7c9424dd36f518f45fd9a380096"
+}

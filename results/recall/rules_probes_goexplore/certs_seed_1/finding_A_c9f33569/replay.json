@@ -1,0 +1,147 @@
+{
+  "total": 5,
+  "fail_count": 5,
+  "pass_count": 0,
+  "unresolved_count": 0,
+  "reproduced": true,
+  "reproduction_rate": 1.0,
+  "evidence_refs": [
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmpd8vup7mw\\screenshots\\failure.png",
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmpi_mrik86\\screenshots\\failure.png",
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmpf2qpn59g\\screenshots\\failure.png",
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmp61uw1e6x\\screenshots\\failure.png",
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmp3ijzzl86\\screenshots\\failure.png"
+  ],
+  "runs": [
+    {
+      "outcome": "FAIL",
+      "reason": "Target signature observed",
+      "reproduced": true,
+      "signature": {
+        "kind": "http_5xx",
+        "first_party_endpoint": "/api/cart",
+        "status": 500,
+        "error_type": null,
+        "message_norm": "HTTP <NUM> on /api/cart",
+        "top_frame": null
+      },
+      "wall_time_ms": 3089.8921489715576,
+      "attempt_log": [
+        {
+          "step": 0,
+          "action_id": "j_root_burst",
+          "status": "ok"
+        },
+        {
+          "step": 1,
+          "action_id": "j_burst_cart",
+          "status": "ok"
+        }
+      ]
+    },
+    {
+      "outcome": "FAIL",
+      "reason": "Target signature observed",
+      "reproduced": true,
+      "signature": {
+        "kind": "http_5xx",
+        "first_party_endpoint": "/api/cart",
+        "status": 500,
+        "error_type": null,
+        "message_norm": "HTTP <NUM> on /api/cart",
+        "top_frame": null
+      },
+      "wall_time_ms": 3012.655735015869,
+      "attempt_log": [
+        {
+          "step": 0,
+          "action_id": "j_root_burst",
+          "status": "ok"
+        },
+        {
+          "step": 1,
+          "action_id": "j_burst_cart",
+          "status": "ok"
+        }
+      ]
+    },
+    {
+      "outcome": "FAIL",
+      "reason": "Target signature observed",
+      "reproduced": true,
+      "signature": {
+        "kind": "http_5xx",
+        "first_party_endpoint": "/api/cart",
+        "status": 500,
+        "error_type": null,
+        "message_norm": "HTTP <NUM> on /api/cart",
+        "top_frame": null
+      },
+      "wall_time_ms": 2646.4407444000244,
+      "attempt_log": [
+        {
+          "step": 0,
+          "action_id": "j_root_burst",
+          "status": "ok"
+        },
+        {
+          "step": 1,
+          "action_id": "j_burst_cart",
+          "status": "ok"
+        }
+      ]
+    },
+    {
+      "outcome": "FAIL",
+      "reason": "Target signature observed",
+      "reproduced": true,
+      "signature": {
+        "kind": "http_5xx",
+        "first_party_endpoint": "/api/cart",
+        "status": 500,
+        "error_type": null,
+        "message_norm": "HTTP <NUM> on /api/cart",
+        "top_frame": null
+      },
+      "wall_time_ms": 2649.698257446289,
+      "attempt_log": [
+        {
+          "step": 0,
+          "action_id": "j_root_burst",
+          "status": "ok"
+        },
+        {
+          "step": 1,
+          "action_id": "j_burst_cart",
+          "status": "ok"
+        }
+      ]
+    },
+    {
+      "outcome": "FAIL",
+      "reason": "Target signature observed",
+      "reproduced": true,
+      "signature": {
+        "kind": "http_5xx",
+        "first_party_endpoint": "/api/cart",
+        "status": 500,
+        "error_type": null,
+        "message_norm": "HTTP <NUM> on /api/cart",
+        "top_frame": null
+      },
+      "wall_time_ms": 2668.9627170562744,
+      "attempt_log": [
+        {
+          "step": 0,
+          "action_id": "j_root_burst",
+          "status": "ok"
+        },
+        {
+          "step": 1,
+          "action_id": "j_burst_cart",
+          "status": "ok"
+        }
+      ]
+    }
+  ]
+}

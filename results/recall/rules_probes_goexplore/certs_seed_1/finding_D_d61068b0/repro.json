@@ -1,0 +1,100 @@
+[
+  {
+    "id": "j_root_checkout",
+    "kind": "goto",
+    "locator": null,
+    "value": "/",
+    "params": {}
+  },
+  {
+    "id": "j_add_1",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Add to Cart",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_add_2",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Add to Cart",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_add_3",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Add to Cart",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_view_cart",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "View Shopping Cart",
+      "label": "View Shopping Cart",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_fill_coupon",
+    "kind": "fill",
+    "locator": {
+      "role": "textbox",
+      "name": "Coupon Code",
+      "label": "Coupon Code",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": "SAVE10",
+    "params": {}
+  },
+  {
+    "id": "j_apply_coupon",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Apply",
+      "label": "Apply Coupon",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_remove_item",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Remove",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  }
+]

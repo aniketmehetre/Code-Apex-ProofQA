@@ -1,0 +1,8 @@
+{
+  "kind": "ui_mismatch",
+  "first_party_endpoint": "/api/cart",
+  "status": null,
+  "error_type": "CrossLayerMismatch",
+  "message_norm": "CrossLayerMismatch: cart_badge_count UI shows <NUM> but API item_count is <NUM>",
+  "top_frame": null
+}

@@ -1,0 +1,8 @@
+{
+  "claim": "First-party HTTP 500 on /api/cart",
+  "oracle_class": "A",
+  "provenance": "finding_A_c9f33569",
+  "tier": "INTERMITTENT",
+  "confidence": 1.0,
+  "observed_rate": "5/5"
+}

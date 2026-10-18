@@ -1,0 +1,7 @@
+{
+  "claim": "First-party HTTP 500 on /api/products",
+  "oracle_class": "A",
+  "provenance": "finding_A_23e7bf51",
+  "tier": "VERIFIED",
+  "confidence": 1.0
+}

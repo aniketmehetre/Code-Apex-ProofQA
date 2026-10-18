@@ -1,0 +1,7 @@
+{
+  "claim": "Cart displayed total ($644.93) ignores discount (truth: $580.44)",
+  "oracle_class": "D",
+  "provenance": "finding_D_89742355",
+  "tier": "VERIFIED_VIOLATION",
+  "confidence": 0.985
+}

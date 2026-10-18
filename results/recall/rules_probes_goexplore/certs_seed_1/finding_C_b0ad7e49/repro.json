@@ -1,0 +1,113 @@
+[
+  {
+    "id": "j_root_reg",
+    "kind": "goto",
+    "locator": null,
+    "value": "/",
+    "params": {}
+  },
+  {
+    "id": "j_nav_about",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "About",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_auth_signin",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Sign In",
+      "label": "Sign In",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_auth_signup",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Sign up here",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_fill_name",
+    "kind": "fill",
+    "locator": {
+      "role": "textbox",
+      "name": "Full Name",
+      "label": "Full Name",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": "Weak User",
+    "params": {}
+  },
+  {
+    "id": "j_fill_email",
+    "kind": "fill",
+    "locator": {
+      "role": "textbox",
+      "name": "Email Address",
+      "label": "Email Address",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": "weak_1_830@example.com",
+    "params": {}
+  },
+  {
+    "id": "j_fill_pw",
+    "kind": "fill",
+    "locator": {
+      "role": "textbox",
+      "name": "Password",
+      "label": "Password",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": "1234",
+    "params": {}
+  },
+  {
+    "id": "j_click_reg",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Register",
+      "label": "Register",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  },
+  {
+    "id": "j_click_reg",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Register",
+      "label": "Register",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  }
+]

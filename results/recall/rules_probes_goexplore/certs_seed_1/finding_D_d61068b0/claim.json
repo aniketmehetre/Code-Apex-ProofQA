@@ -1,0 +1,7 @@
+{
+  "claim": "Cart badge displays 4 but API truth item_count is 3",
+  "oracle_class": "D",
+  "provenance": "finding_D_d61068b0",
+  "tier": "VERIFIED_VIOLATION",
+  "confidence": 0.985
+}

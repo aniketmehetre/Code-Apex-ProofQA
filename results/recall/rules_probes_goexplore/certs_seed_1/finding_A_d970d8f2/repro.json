@@ -1,0 +1,22 @@
+[
+  {
+    "id": "j_root_zero",
+    "kind": "goto",
+    "locator": null,
+    "value": "/",
+    "params": {}
+  },
+  {
+    "id": "j_confirm_zero_cart",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Add to Cart",
+      "label": "Confirm Add to Cart",
+      "testid": "modal-add-to-cart",
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  }
+]

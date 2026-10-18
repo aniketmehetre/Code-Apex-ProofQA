@@ -1,0 +1,23 @@
+[
+  {
+    "id": "j_root_burst",
+    "kind": "goto",
+    "locator": null,
+    "value": "/",
+    "params": {}
+  },
+  {
+    "id": "j_burst_cart",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Add to Cart",
+      "label": null,
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {},
+    "burst": 4
+  }
+]

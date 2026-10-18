@@ -1,0 +1,7 @@
+{
+  "claim": "Returning to default sort order does not restore initial ID ordering (B05)",
+  "oracle_class": "B",
+  "provenance": "finding_B_1ca63abd",
+  "tier": "VERIFIED_VIOLATION",
+  "confidence": 0.97
+}

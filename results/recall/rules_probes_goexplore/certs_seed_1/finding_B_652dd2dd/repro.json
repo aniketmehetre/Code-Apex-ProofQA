@@ -1,0 +1,9 @@
+[
+  {
+    "id": "j_root_filter",
+    "kind": "goto",
+    "locator": null,
+    "value": "/",
+    "params": {}
+  }
+]

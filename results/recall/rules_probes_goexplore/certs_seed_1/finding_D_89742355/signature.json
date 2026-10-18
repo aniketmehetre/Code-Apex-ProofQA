@@ -1,0 +1,8 @@
+{
+  "kind": "ui_mismatch",
+  "first_party_endpoint": "/api/cart",
+  "status": null,
+  "error_type": "CrossLayerMismatch",
+  "message_norm": "CrossLayerMismatch: cart_total UI displays $<NUM>.<NUM> but truth total is $<NUM>.<NUM>",
+  "top_frame": null
+}

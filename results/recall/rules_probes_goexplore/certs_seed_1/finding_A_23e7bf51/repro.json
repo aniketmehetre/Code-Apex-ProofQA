@@ -1,0 +1,35 @@
+[
+  {
+    "id": "j_root_search",
+    "kind": "goto",
+    "locator": null,
+    "value": "/",
+    "params": {}
+  },
+  {
+    "id": "j_search_quote",
+    "kind": "fill",
+    "locator": {
+      "role": "searchbox",
+      "name": "Search products",
+      "label": "Search products",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": "'",
+    "params": {}
+  },
+  {
+    "id": "j_search_submit",
+    "kind": "click",
+    "locator": {
+      "role": "button",
+      "name": "Search",
+      "label": "Submit Search",
+      "testid": null,
+      "css_fallback": null
+    },
+    "value": null,
+    "params": {}
+  }
+]

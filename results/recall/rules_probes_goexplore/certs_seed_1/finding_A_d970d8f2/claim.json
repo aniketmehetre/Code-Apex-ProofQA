@@ -1,0 +1,7 @@
+{
+  "claim": "First-party HTTP 500 on /api/cart",
+  "oracle_class": "A",
+  "provenance": "finding_A_d970d8f2",
+  "tier": "VERIFIED",
+  "confidence": 1.0
+}

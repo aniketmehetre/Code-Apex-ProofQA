@@ -1,0 +1,7 @@
+{
+  "claim": "Server returned 200 accepting password value '1234' contrary to spec fact: 'For account registration, all user passwords must be at least 8 characters in length to maintain credential security standards across customer accounts' on /",
+  "oracle_class": "C",
+  "provenance": "finding_C_b0ad7e49",
+  "tier": "VERIFIED_VIOLATION",
+  "confidence": 0.955
+}

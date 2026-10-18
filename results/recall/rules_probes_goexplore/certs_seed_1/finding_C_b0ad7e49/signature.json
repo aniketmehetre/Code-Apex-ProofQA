@@ -1,0 +1,8 @@
+{
+  "kind": "spec_claim_violation",
+  "first_party_endpoint": "/api/register",
+  "status": 200,
+  "error_type": "SpecClaimViolation",
+  "message_norm": "SpecClaimViolation: password value '<NUM>' violates min_len=<NUM> on / citing: 'For account registration, all user passwords must be at least <NUM> characters in length to maintain credential security standards across customer accounts'",
+  "top_frame": null
+}

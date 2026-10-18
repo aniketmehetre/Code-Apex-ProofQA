@@ -1,0 +1,69 @@
+{
+  "total": 1,
+  "fail_count": 1,
+  "pass_count": 0,
+  "unresolved_count": 0,
+  "reproduced": true,
+  "reproduction_rate": 1.0,
+  "evidence_refs": [
+    "C:\\Users\\anike\\AppData\\Local\\Temp\\tmp424ct28f\\screenshots\\failure.png"
+  ],
+  "runs": [
+    {
+      "outcome": "FAIL",
+      "reason": "Target signature observed",
+      "reproduced": true,
+      "signature": {
+        "kind": "ui_mismatch",
+        "first_party_endpoint": "/api/cart",
+        "status": null,
+        "error_type": "CrossLayerMismatch",
+        "message_norm": "CrossLayerMismatch: cart_badge_count UI shows <NUM> but API item_count is <NUM>",
+        "top_frame": null
+      },
+      "wall_time_ms": 4495.245933532715,
+      "attempt_log": [
+        {
+          "step": 0,
+          "action_id": "j_root_checkout",
+          "status": "ok"
+        },
+        {
+          "step": 1,
+          "action_id": "j_add_1",
+          "status": "ok"
+        },
+        {
+          "step": 2,
+          "action_id": "j_add_2",
+          "status": "ok"
+        },
+        {
+          "step": 3,
+          "action_id": "j_add_3",
+          "status": "ok"
+        },
+        {
+          "step": 4,
+          "action_id": "j_view_cart",
+          "status": "ok"
+        },
+        {
+          "step": 5,
+          "action_id": "j_fill_coupon",
+          "status": "ok"
+        },
+        {
+          "step": 6,
+          "action_id": "j_apply_coupon",
+          "status": "ok"
+        },
+        {
+          "step": 7,
+          "action_id": "j_remove_item",
+          "status": "ok"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "relation_violation",
+  "first_party_endpoint": "/api/products",
+  "status": null,
+  "error_type": "MetamorphicViolation",
+  "message_norm": "Category filter on page <NUM> returns items from other categories",
+  "top_frame": null
+}

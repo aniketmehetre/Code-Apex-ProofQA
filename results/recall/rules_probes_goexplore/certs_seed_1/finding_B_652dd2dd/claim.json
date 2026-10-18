@@ -1,0 +1,7 @@
+{
+  "claim": "Category filter returns items from other categories (B06)",
+  "oracle_class": "B",
+  "provenance": "finding_B_652dd2dd",
+  "tier": "VERIFIED_VIOLATION",
+  "confidence": 0.97
+}

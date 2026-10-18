@@ -1,0 +1,1 @@
+{"status":"success","order":{"id":16,"total":29.98,"address":"123 Test St","created_at":"2026-10-17T21:35:02.993482+00:00","items":[{"id":50,"product_id":11,"name":"Braided USB-C Cable 2-Pack","price":14.99,"quantity":2,"line_total":29.98,"category":"Electronics"}]}}
